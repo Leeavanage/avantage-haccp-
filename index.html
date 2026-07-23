@@ -352,7 +352,7 @@ main{max-width:1100px; margin:0 auto; padding:1rem 1rem 6.5rem;}
         <button class="icon-btn" id="qMicBtn" title="הכתבה קולית" onclick="toggleDictation('q_details','qMicBtn')">🎤</button>
       </div>
       <label>צילום (מומלץ)</label>
-      <input type="file" id="q_photoInput" accept="image/*" capture="environment" onchange="handlePhoto(this,'q_photoPreview','_qphoto')">
+      <input type="file" id="q_photoInput" accept="image/*" onchange="handlePhoto(this,'q_photoPreview','_qphoto')">
       <img id="q_photoPreview" class="photo-preview" style="display:none" alt="צילום">
       <label>שם המדווח</label>
       <select id="q_reporter"></select>
@@ -410,7 +410,7 @@ main{max-width:1100px; margin:0 auto; padding:1rem 1rem 6.5rem;}
           <button class="icon-btn" id="micBtn" title="הכתבה קולית" onclick="toggleDictation('f_details','micBtn')">🎤</button>
         </div>
         <label>צילום ראיה</label>
-        <input type="file" id="f_photoInput" accept="image/*" capture="environment" onchange="handlePhoto(this)">
+        <input type="file" id="f_photoInput" accept="image/*" onchange="handlePhoto(this)">
         <img id="f_photoPreview" class="photo-preview" style="display:none" alt="צילום ראיה">
       </div>
       <div id="recurWarn"></div>
@@ -666,7 +666,7 @@ function notifyPush(title, message){
 
 /* ---------- role ---------- */
 const QA_ROLE = "ראש צוות HACCP";
-const QA_PIN = "0201";
+const QA_PIN = "9412";
 function setRole(r){
   if(r === QA_ROLE){
     const pin = prompt("קוד אישי לראש צוות HACCP:");
