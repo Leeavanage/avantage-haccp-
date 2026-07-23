@@ -336,7 +336,35 @@ main{max-width:1100px; margin:0 auto; padding:1rem 1rem 6.5rem;}
   </section>
 </main>
 
-<button class="fab" onclick="openForm()">＋ דיווח חדש</button>
+<button class="fab" onclick="openQuick()">＋ דיווח חדש</button>
+
+<!-- ============ QUICK REPORT ============ -->
+<div class="overlay" id="quickOverlay">
+  <div class="modal">
+    <div class="modal-head">
+      <h2>⚡ דיווח מהיר</h2>
+      <button class="close-x" onclick="closeQuick()">✕</button>
+    </div>
+    <div class="fieldset">
+      <label>מה קרה? <span class="req">*</span></label>
+      <div class="inline-tools">
+        <textarea id="q_details" placeholder="תיאור קצר במילים שלכם — למשל: לקוחה מצאה שערה בעוגת מוס בבוטיק חולון"></textarea>
+        <button class="icon-btn" id="qMicBtn" title="הכתבה קולית" onclick="toggleDictation('q_details','qMicBtn')">🎤</button>
+      </div>
+      <label>צילום (מומלץ)</label>
+      <input type="file" id="q_photoInput" accept="image/*" capture="environment" onchange="handlePhoto(this,'q_photoPreview','_qphoto')">
+      <img id="q_photoPreview" class="photo-preview" style="display:none" alt="צילום">
+      <label>שם המדווח</label>
+      <select id="q_reporter"></select>
+      <input type="text" id="q_reporterOther" placeholder="שם המדווח…" style="display:none; margin-top:.3rem">
+      <label>למי להעביר לטיפול?</label>
+      <select id="q_taggedTo"></select>
+      <input type="text" id="q_taggedToOther" placeholder="שם…" style="display:none; margin-top:.3rem">
+    </div>
+    <button class="btn primary" style="width:100%" onclick="saveQuick()">🚀 שליחת הדיווח</button>
+    <button class="btn ghost" style="width:100%; margin-top:.5rem" onclick="openFullFromQuick()">📋 יש לי את כל הפרטים — לטופס המלא</button>
+  </div>
+</div>
 
 <!-- ============ FORM WIZARD ============ -->
 <div class="overlay" id="formOverlay">
@@ -379,7 +407,7 @@ main{max-width:1100px; margin:0 auto; padding:1rem 1rem 6.5rem;}
         <label>פרטי התקלה <span class="req">*</span></label>
         <div class="inline-tools">
           <textarea id="f_details" placeholder="תיאור מפורט של התקלה…"></textarea>
-          <button class="icon-btn" id="micBtn" title="הכתבה קולית" onclick="toggleDictation()">🎤</button>
+          <button class="icon-btn" id="micBtn" title="הכתבה קולית" onclick="toggleDictation('f_details','micBtn')">🎤</button>
         </div>
         <label>צילום ראיה</label>
         <input type="file" id="f_photoInput" accept="image/*" capture="environment" onchange="handlePhoto(this)">
@@ -690,8 +718,9 @@ function renderCards(){
         <span class="badge sev ${esc(r.severity||"")}"><span class="dot"></span>${esc(r.severity||"—")}</span>
         ${isLate(r)?'<span class="badge late">⏰ באיחור</span>':""}
         ${r.questions && r.questions.some(x=>!x.answer)?'<span class="badge" style="background:#eef2f8;color:#1f66d0;border:1px solid #c9d8f0">❓ ממתין לתשובה</span>':""}
+        ${r.taggedTo && r.status==="פתוח" ? `<span class="badge" style="background:#fff2e8;color:#c2570f;border:1px solid #f5cfae">👋 לטיפול: ${esc(r.taggedTo.split(" · ")[0])}</span>`:""}
       </div>
-      <h3>${esc(r.topic||"ללא נושא")}</h3>
+      <h3>${esc(r.quick && !r.product ? (r.details.length>60 ? r.details.slice(0,60)+"…" : r.details) : (r.topic||"ללא נושא"))}</h3>
       <div class="meta">🍰 <b>${esc(r.product||"—")}</b></div>
       <div class="meta">👤 ${esc(r.customerName||"—")} · 🏭 ${esc(r.department||"—")}</div>
       <div class="meta">📅 ${fmtDate(r.dateReceived)} ${r.dueDate?` · לו"ז: ${fmtDate(r.dueDate)}`:""}</div>
@@ -714,6 +743,51 @@ function renderRecurWarn(){
   else if(t && byTopic.length >= 2)
     html += `<div class="warn-box">⚠️ <b>נושא חוזר:</b> הנושא «${esc(t)}» הופיע כבר ${byTopic.length} פעמים. מומלץ לבחון מגמה במסך הדוחות ולשקול הסלמה.</div>`;
   $("recurWarn").innerHTML = html;
+}
+
+/* ---------- quick report ---------- */
+function openQuick(){
+  $("q_details").value = "";
+  $("q_photoInput").value = "";
+  window._qphoto = null;
+  $("q_photoPreview").style.display = "none";
+  setPersonValue("q_reporter","q_reporterOther","");
+  setPersonValue("q_taggedTo","q_taggedToOther", PEOPLE[1]);
+  $("quickOverlay").classList.add("open");
+}
+function closeQuick(){ $("quickOverlay").classList.remove("open"); stopDictation(); }
+function saveQuick(){
+  const details = $("q_details").value.trim();
+  if(!details){ toast("נא לתאר בקצרה מה קרה"); $("q_details").classList.add("missing"); return; }
+  $("q_details").classList.remove("missing");
+  const taggedTo = personValue("q_taggedTo","q_taggedToOther") || PEOPLE[1];
+  const r = {
+    id: "r" + Date.now() + Math.random().toString(36).slice(2,6),
+    createdAt: Date.now(),
+    quick: true,
+    dateReceived: todayISO(),
+    reporter: personValue("q_reporter","q_reporterOther"),
+    taggedTo,
+    department: "", topic: "אחר", hazard: "", severity: "",
+    product: "", details,
+    photo: window._qphoto || null,
+    questions: [], closedAt: null
+  };
+  r.status = statusOf(r);
+  reports.push(r);
+  save(); sbUpsert(r);
+  notifyPush("🚨 תקלה חדשה · אוונטאז' פטיסרי",
+    `${details.slice(0,120)}\nלטיפול: ${taggedTo.split(" · ")[0]}\nמדווח: ${r.reporter ? r.reporter.split(" · ")[0] : "—"}${r.photo ? "\n📷 צורף צילום" : ""}`);
+  closeQuick(); renderCards();
+  toast("🚀 הדיווח נשלח — " + taggedTo.split(" · ")[0] + " קיבל/ה התראה");
+}
+function openFullFromQuick(){
+  const d = $("q_details").value, rep = personValue("q_reporter","q_reporterOther"), ph = window._qphoto;
+  closeQuick();
+  openForm();
+  if(d) $("f_details").value = d;
+  if(rep) setPersonValue("f_reporter","f_reporterOther", rep);
+  if(ph){ window._photo = ph; $("f_photoPreview").src = ph; $("f_photoPreview").style.display = "block"; }
 }
 
 /* ---------- wizard ---------- */
@@ -884,7 +958,9 @@ function saveReport(closeIt){
 }
 
 /* ---------- photo ---------- */
-function handlePhoto(input){
+function handlePhoto(input, previewId, storeKey){
+  previewId = previewId || "f_photoPreview";
+  storeKey = storeKey || "_photo";
   const file = input.files && input.files[0];
   if(!file) return;
   const img = new Image();
@@ -896,9 +972,9 @@ function handlePhoto(input){
       const c = document.createElement("canvas");
       c.width = Math.round(img.width*scale); c.height = Math.round(img.height*scale);
       c.getContext("2d").drawImage(img,0,0,c.width,c.height);
-      window._photo = c.toDataURL("image/jpeg",.7);
-      $("f_photoPreview").src = window._photo;
-      $("f_photoPreview").style.display = "block";
+      window[storeKey] = c.toDataURL("image/jpeg",.7);
+      $(previewId).src = window[storeKey];
+      $(previewId).style.display = "block";
     };
     img.src = e.target.result;
   };
@@ -1014,7 +1090,7 @@ function openDetail(id){
     </div>
     ${recurHtml}
     <div class="detail-section"><h4>שלב 1 · מה קרה</h4>
-      ${kv([["תאריך קבלה",fmtDate(r.dateReceived)],["מדווח",r.reporter],["מחלקה",r.department],["נושא",r.topic],["סוג סכנה",r.hazard],["חומרה",r.severity],["מוצר",r.product],["פרטים",r.details]])}
+      ${kv([["תאריך קבלה",fmtDate(r.dateReceived)],["מדווח",r.reporter],["מתויג לטיפול",r.taggedTo],["מחלקה",r.department],["נושא",r.topic],["סוג סכנה",r.hazard],["חומרה",r.severity],["מוצר",r.product],["פרטים",r.details]])}
       ${r.photo?`<img src="${r.photo}" class="photo-preview" alt="צילום ראיה">`:""}
     </div>
     <div class="detail-section"><h4>שלב 2 · מקור התלונה</h4>
@@ -1219,9 +1295,11 @@ function clearAll(){
 }
 
 /* ---------- voice dictation ---------- */
-let recognition = null, dictating = false;
-function toggleDictation(){
+let recognition = null, dictating = false, dictTargetId = "f_details", dictBtnId = "micBtn";
+function toggleDictation(targetId, btnId){
   if(dictating){ stopDictation(); return; }
+  dictTargetId = targetId || "f_details";
+  dictBtnId = btnId || "micBtn";
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
   if(!SR){ toast("🎤 הדפדפן לא תומך בהכתבה קולית — ניתן להקליד ידנית"); return; }
   recognition = new SR();
@@ -1233,7 +1311,7 @@ function toggleDictation(){
     for(let i=e.resultIndex; i<e.results.length; i++)
       if(e.results[i].isFinal) text += e.results[i][0].transcript + " ";
     if(text){
-      const ta = $("f_details");
+      const ta = $(dictTargetId);
       ta.value = (ta.value ? ta.value.trim() + " " : "") + text.trim();
     }
   };
@@ -1242,13 +1320,14 @@ function toggleDictation(){
   try{
     recognition.start();
     dictating = true;
-    $("micBtn").classList.add("rec");
+    $(dictBtnId).classList.add("rec");
     toast("🎤 מקליט… לחצו שוב לעצירה");
   }catch(err){ toast("🎤 לא ניתן להפעיל הכתבה"); }
 }
 function stopDictation(){
   dictating = false;
-  $("micBtn") && $("micBtn").classList.remove("rec");
+  const b = document.getElementById(dictBtnId);
+  if(b) b.classList.remove("rec");
   if(recognition){ try{ recognition.stop(); }catch(_){} recognition = null; }
 }
 
@@ -1367,7 +1446,9 @@ function init(){
   personSelect($("f_reporter"));
   personSelect($("f_assignee"));
   personSelect($("f_qTo"));
-  [["f_reporter","f_reporterOther"],["f_assignee","f_assigneeOther"],["f_qTo","f_qToOther"]].forEach(([sel,other])=>{
+  personSelect($("q_reporter"));
+  personSelect($("q_taggedTo"));
+  [["f_reporter","f_reporterOther"],["f_assignee","f_assigneeOther"],["f_qTo","f_qToOther"],["q_reporter","q_reporterOther"],["q_taggedTo","q_taggedToOther"]].forEach(([sel,other])=>{
     $(sel).addEventListener("change", ()=>{ $(other).style.display = $(sel).value==="__other" ? "block":"none"; });
   });
   $("f_product").addEventListener("input", renderRecurWarn);
@@ -1389,8 +1470,14 @@ function init(){
     setSyncStatus("⚪ מקומי", "הנתונים נשמרים במכשיר זה בלבד — הגדרת ענן במסך הדוחות");
   }
   // סגירת מודאלים בלחיצה על הרקע
-  ["formOverlay","detailOverlay"].forEach(id=>{
-    $(id).addEventListener("click", e=>{ if(e.target===$(id)){ id==="formOverlay"?closeForm():closeDetail(); } });
+  ["formOverlay","detailOverlay","quickOverlay"].forEach(id=>{
+    $(id).addEventListener("click", e=>{
+      if(e.target===$(id)){
+        if(id==="formOverlay") closeForm();
+        else if(id==="quickOverlay") closeQuick();
+        else closeDetail();
+      }
+    });
   });
 }
 init();
