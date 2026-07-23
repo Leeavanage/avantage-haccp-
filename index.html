@@ -267,9 +267,8 @@ main{max-width:1100px; margin:0 auto; padding:1rem 1rem 6.5rem;}
       <div class="role-wrap">
         <span>תפקיד:</span>
         <select id="roleSelect" onchange="setRole(this.value)">
-          <option value="מדווח">מדווח</option>
-          <option value="אחראי">אחראי</option>
-          <option value="מנהל איכות">מנהל איכות</option>
+          <option value="צוות">צוות — דיווח ועדכון</option>
+          <option value="ראש צוות HACCP">לי חסון · ראש צוות HACCP</option>
         </select>
       </div>
     </div>
@@ -626,8 +625,29 @@ function sbSaveSettings(){
   }
 }
 
+/* ---------- push notifications (ntfy.sh) ---------- */
+const NTFY_TOPIC = "avantage-patisserie-haccp-t0201";
+function notifyPush(title, message){
+  try{
+    fetch("https://ntfy.sh", {
+      method: "POST",
+      body: JSON.stringify({topic: NTFY_TOPIC, title, message, tags: ["rotating_light"], priority: 4})
+    }).catch(()=>{});
+  }catch(e){}
+}
+
 /* ---------- role ---------- */
+const QA_ROLE = "ראש צוות HACCP";
+const QA_PIN = "0201";
 function setRole(r){
+  if(r === QA_ROLE){
+    const pin = prompt("קוד אישי לראש צוות HACCP:");
+    if(pin !== QA_PIN){
+      toast("🔒 קוד שגוי");
+      $("roleSelect").value = role;
+      return;
+    }
+  }
   role = r; localStorage.setItem(LS_ROLE, r);
   toast("תפקיד נוכחי: " + r);
 }
@@ -742,9 +762,10 @@ function openForm(id){
   $("f_effResult").value = r?.effResult || "";
   $("f_notes").value = r?.notes || "";
   $("f_qaSignature").value = r?.qaSignature || "";
-  const isQA = role==="מנהל איכות";
+  const isQA = role===QA_ROLE;
   $("f_qaSignature").disabled = !isQA;
-  $("qaHint").textContent = isQA ? "" : "🔒 חתימה וסגירה סופית זמינות רק בתפקיד «מנהל איכות» (בחירה בכותרת למעלה).";
+  if(isQA && !$("f_qaSignature").value) $("f_qaSignature").value = "לי חסון";
+  $("qaHint").textContent = isQA ? "" : "🔒 חתימה וסגירה סופית — רק לי חסון (ראש צוות HACCP), במעבר תפקיד עם קוד אישי בכותרת למעלה.";
   $("closedAtHint").textContent = r?.closedAt ? "נסגר ואושר: " + fmtDateTime(r.closedAt) : "";
   renderRecurWarn();
   showStep(1);
@@ -761,7 +782,7 @@ function showStep(n){
   $("btnPrev").style.display = n>1 ? "" : "none";
   $("btnNext").style.display = n<4 ? "" : "none";
   $("btnSave").style.display = n===4 ? "" : "none";
-  const canClose = role==="מנהל איכות";
+  const canClose = role===QA_ROLE;
   $("btnClose").style.display = n===4 && canClose ? "" : "none";
   document.querySelector("#formOverlay .modal").scrollTop = 0;
 }
@@ -821,10 +842,11 @@ function collectForm(){
 function saveReport(closeIt){
   if(!validateStep1()){ showStep(1); return; }
   if(closeIt){
-    if(role!=="מנהל איכות"){ toast("🔒 סגירה סופית מותרת רק למנהל איכות"); return; }
+    if(role!==QA_ROLE){ toast("🔒 סגירה סופית מותרת רק לראש צוות HACCP"); return; }
     if(!$("f_qaSignature").value.trim()){ toast("נא למלא חתימת מנהל איכות לפני סגירה"); $("f_qaSignature").classList.add("missing"); return; }
   }
   const data = collectForm();
+  const isNew = !editingId;
   let r;
   if(editingId){
     r = reports.find(x=>x.id===editingId);
@@ -852,6 +874,10 @@ function saveReport(closeIt){
   r.status = statusOf(r);
   save();
   sbUpsert(r);
+  if(isNew){
+    notifyPush("🚨 תקלה חדשה · אוונטאז' פטיסרי",
+      `${r.topic} · ${r.product}\nחומרה: ${r.severity||"—"} · מחלקה: ${r.department||"—"}\nמדווח: ${r.reporter||"—"}`);
+  }
   closeForm();
   renderCards();
   toast(closeIt ? "✅ הדיווח נסגר ואושר סופית" : "💾 הדיווח נשמר");
@@ -975,7 +1001,7 @@ function openDetail(id){
            </div>`}
     </div>`).join("") || '<div class="hint">אין שאלות עדיין.</div>';
 
-  const canClose = role==="מנהל איכות";
+  const canClose = role===QA_ROLE;
   $("detailModal").innerHTML = `
     <div class="modal-head">
       <h2>${esc(r.topic)} · ${esc(r.product)}</h2>
@@ -1016,7 +1042,7 @@ function openDetail(id){
       <button class="btn primary" onclick="closeDetail(); openForm('${r.id}')">✏️ עריכה</button>
       <button class="btn ghost" onclick="printReport('${r.id}')">🖨️ ייצוא PDF</button>
       ${!r.closedAt && canClose ? `<button class="btn ghost" style="background:#e5f6ee;color:#1d7a44" onclick="closeDetail(); openForm('${r.id}'); showStep(4)">✅ סגירה ואישור</button>` : ""}
-      ${!canClose && !r.closedAt ? `<span class="hint" style="align-self:center">🔒 סגירה סופית — מנהל איכות בלבד</span>`:""}
+      ${!canClose && !r.closedAt ? `<span class="hint" style="align-self:center">🔒 סגירה סופית — לי חסון (ראש צוות HACCP) בלבד</span>`:""}
       <button class="btn danger" onclick="deleteReport('${r.id}')">🗑️ מחיקה</button>
     </div>`;
   const sel = $("newQTo");
@@ -1346,6 +1372,7 @@ function init(){
   });
   $("f_product").addEventListener("input", renderRecurWarn);
   $("f_topic").addEventListener("change", renderRecurWarn);
+  if(role !== "צוות" && role !== QA_ROLE){ role = "צוות"; localStorage.setItem(LS_ROLE, role); }
   $("roleSelect").value = role;
   renderCards();
   makeTouchIcon();
