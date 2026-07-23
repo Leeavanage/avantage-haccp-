@@ -1,0 +1,1230 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>תלונות ותקלות · אוונטאז' פטיסרי</title>
+<style>
+:root{
+  --blue:#1f66d0; --teal:#0e9aa7;
+  --sev-low:#22a05a; --sev-mid:#e6a817; --sev-high:#d64545;
+  --st-open:#1f66d0; --st-progress:#0e9aa7; --st-done:#7a8699;
+  --bg:#f2f5fa; --card:#ffffff; --text:#1c2733; --muted:#65748b;
+  --line:#dde4ee; --radius:16px;
+  --shadow:0 2px 10px rgba(20,40,80,.08);
+}
+*{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+html,body{margin:0; padding:0;}
+body{
+  font-family:-apple-system,"Segoe UI",Roboto,"Heebo","Arial Hebrew",Arial,sans-serif;
+  background:var(--bg); color:var(--text); font-size:16px; line-height:1.5;
+}
+button{font-family:inherit; font-size:1rem; cursor:pointer;}
+input,select,textarea{
+  font-family:inherit; font-size:1rem; width:100%;
+  padding:.65rem .8rem; border:1.5px solid var(--line); border-radius:12px;
+  background:#fff; color:var(--text);
+}
+input:focus,select:focus,textarea:focus{outline:none; border-color:var(--blue); box-shadow:0 0 0 3px rgba(31,102,208,.15);}
+textarea{min-height:90px; resize:vertical;}
+label{display:block; font-size:.86rem; font-weight:600; color:var(--muted); margin:.7rem 0 .25rem;}
+label .req{color:var(--sev-high);}
+
+/* ---------- header ---------- */
+header.app{
+  background:linear-gradient(120deg,var(--blue),var(--teal));
+  color:#fff; padding:.9rem 1rem calc(.6rem);
+  position:sticky; top:0; z-index:50; box-shadow:0 2px 12px rgba(20,60,140,.35);
+}
+.app-inner{max-width:1100px; margin:0 auto;}
+.app-title-row{display:flex; align-items:center; justify-content:space-between; gap:.6rem; flex-wrap:wrap;}
+.app h1{margin:0; font-size:1.15rem; font-weight:800; letter-spacing:.2px;}
+.app .sub{font-size:.72rem; opacity:.85;}
+.role-wrap{display:flex; align-items:center; gap:.35rem; font-size:.8rem;}
+.role-wrap select{
+  width:auto; padding:.3rem .5rem; border-radius:10px; border:none;
+  background:rgba(255,255,255,.2); color:#fff; font-size:.82rem; font-weight:600;
+}
+.role-wrap select option{color:#1c2733;}
+nav.tabs{display:flex; gap:.4rem; margin-top:.7rem;}
+nav.tabs button{
+  flex:1; max-width:180px; border:none; border-radius:12px 12px 0 0;
+  padding:.55rem .6rem; font-weight:700; font-size:.92rem;
+  background:rgba(255,255,255,.16); color:#fff;
+}
+nav.tabs button.active{background:var(--bg); color:var(--blue);}
+
+/* ---------- layout ---------- */
+main{max-width:1100px; margin:0 auto; padding:1rem 1rem 6.5rem;}
+.view{display:none;}
+.view.active{display:block;}
+
+/* ---------- dashboard stats ---------- */
+.stats{display:grid; grid-template-columns:repeat(3,1fr); gap:.6rem; margin-bottom:1rem;}
+.stat{
+  background:var(--card); border-radius:var(--radius); padding:.8rem .5rem;
+  text-align:center; box-shadow:var(--shadow); border-top:4px solid var(--line);
+  cursor:pointer; transition:transform .1s;
+}
+.stat:active{transform:scale(.97);}
+.stat.open{border-top-color:var(--st-open);}
+.stat.progress{border-top-color:var(--st-progress);}
+.stat.done{border-top-color:var(--st-done);}
+.stat .num{font-size:1.7rem; font-weight:800;}
+.stat.open .num{color:var(--st-open);}
+.stat.progress .num{color:var(--st-progress);}
+.stat.done .num{color:var(--st-done);}
+.stat .lbl{font-size:.78rem; color:var(--muted); font-weight:600;}
+
+/* ---------- filters ---------- */
+.filters{display:flex; gap:.5rem; flex-wrap:wrap; margin-bottom:1rem;}
+.filters input[type=search]{flex:1 1 200px;}
+.filters select{flex:0 1 150px; width:auto;}
+.chip-toggle{
+  border:1.5px solid var(--line); background:#fff; border-radius:999px;
+  padding:.55rem 1rem; font-weight:700; font-size:.88rem; color:var(--muted);
+}
+.chip-toggle.on{background:var(--sev-high); border-color:var(--sev-high); color:#fff;}
+
+/* ---------- cards ---------- */
+.cards{display:grid; grid-template-columns:1fr; gap:.7rem;}
+@media(min-width:700px){.cards{grid-template-columns:repeat(2,1fr);}}
+@media(min-width:1000px){.cards{grid-template-columns:repeat(3,1fr);}}
+.card{
+  background:var(--card); border-radius:var(--radius); box-shadow:var(--shadow);
+  padding:.8rem .9rem .8rem; position:relative; overflow:hidden; cursor:pointer;
+  border-right:6px solid var(--line);
+}
+.card.sev-קל{border-right-color:var(--sev-low);}
+.card.sev-בינוני{border-right-color:var(--sev-mid);}
+.card.sev-חמור{border-right-color:var(--sev-high);}
+.card:active{transform:scale(.99);}
+.badges{display:flex; gap:.35rem; flex-wrap:wrap; margin-bottom:.4rem;}
+.badge{
+  font-size:.72rem; font-weight:700; padding:.15rem .55rem; border-radius:999px; color:#fff;
+  display:inline-flex; align-items:center; gap:.3rem;
+}
+.badge.st-פתוח{background:var(--st-open);}
+.badge.st-בטיפול{background:var(--st-progress);}
+.badge.st-הושלם{background:var(--st-done);}
+.badge.sev{background:#eef2f8; color:var(--text); border:1px solid var(--line);}
+.badge.sev .dot{width:.6rem; height:.6rem; border-radius:50%;}
+.badge.sev.קל .dot{background:var(--sev-low);}
+.badge.sev.בינוני .dot{background:var(--sev-mid);}
+.badge.sev.חמור .dot{background:var(--sev-high);}
+.badge.late{background:#fdecec; color:var(--sev-high); border:1px solid #f5c4c4;}
+.card h3{margin:.1rem 0 .2rem; font-size:1.02rem;}
+.card .meta{font-size:.82rem; color:var(--muted);}
+.card .meta b{color:var(--text); font-weight:600;}
+.empty{
+  text-align:center; color:var(--muted); padding:2.5rem 1rem; background:var(--card);
+  border-radius:var(--radius); border:1.5px dashed var(--line);
+}
+
+/* ---------- FAB ---------- */
+.fab{
+  position:fixed; bottom:1.2rem; left:1.2rem; z-index:60;
+  background:linear-gradient(120deg,var(--blue),var(--teal)); color:#fff;
+  border:none; border-radius:999px; padding:.95rem 1.4rem;
+  font-size:1.05rem; font-weight:800; box-shadow:0 6px 18px rgba(20,80,180,.4);
+  display:flex; align-items:center; gap:.45rem;
+}
+.fab:active{transform:scale(.96);}
+
+/* ---------- modal ---------- */
+.overlay{
+  position:fixed; inset:0; background:rgba(15,25,45,.55); z-index:100;
+  display:none; align-items:flex-end; justify-content:center;
+}
+.overlay.open{display:flex;}
+.modal{
+  background:var(--bg); width:100%; max-height:94vh; overflow-y:auto;
+  border-radius:20px 20px 0 0; padding:1rem 1rem 2rem; position:relative;
+  -webkit-overflow-scrolling:touch;
+}
+@media(min-width:700px){
+  .overlay{align-items:center; padding:2rem;}
+  .modal{max-width:640px; border-radius:20px; max-height:88vh;}
+}
+.modal-head{display:flex; align-items:center; justify-content:space-between; margin-bottom:.6rem;}
+.modal-head h2{margin:0; font-size:1.15rem; color:var(--blue);}
+.close-x{
+  border:none; background:#e8edf5; color:var(--muted); border-radius:50%;
+  width:2.2rem; height:2.2rem; font-size:1.1rem; font-weight:800; line-height:1;
+}
+
+/* ---------- wizard ---------- */
+.progress{display:flex; gap:.35rem; margin:.4rem 0 1rem;}
+.progress .seg{flex:1; height:.45rem; border-radius:99px; background:#d8e0ec;}
+.progress .seg.done{background:linear-gradient(90deg,var(--blue),var(--teal));}
+.step-title{font-weight:800; color:var(--teal); margin:.2rem 0 .4rem; font-size:1rem;}
+.wstep{display:none;}
+.wstep.active{display:block;}
+.fieldset{
+  background:var(--card); border-radius:var(--radius); padding: .4rem .9rem .9rem;
+  box-shadow:var(--shadow); margin-bottom:.8rem;
+}
+.grid2{display:grid; grid-template-columns:1fr 1fr; gap:0 .7rem;}
+@media(max-width:420px){.grid2{grid-template-columns:1fr;}}
+.wiz-nav{display:flex; gap:.6rem; margin-top:1rem;}
+.btn{
+  border:none; border-radius:12px; padding:.8rem 1.1rem; font-weight:800; font-size:1rem;
+}
+.btn.primary{background:linear-gradient(120deg,var(--blue),var(--teal)); color:#fff; flex:1;}
+.btn.ghost{background:#e8edf5; color:var(--text);}
+.btn.danger{background:#fdecec; color:var(--sev-high);}
+.btn.small{padding:.45rem .8rem; font-size:.85rem; border-radius:10px;}
+.btn:disabled{opacity:.45; cursor:not-allowed;}
+.inline-tools{display:flex; gap:.4rem; align-items:center;}
+.inline-tools textarea, .inline-tools input{flex:1;}
+.icon-btn{
+  flex:0 0 auto; width:2.7rem; height:2.7rem; border-radius:12px; border:1.5px solid var(--line);
+  background:#fff; font-size:1.2rem;
+}
+.icon-btn.rec{background:var(--sev-high); color:#fff; border-color:var(--sev-high); animation:pulse 1s infinite;}
+@keyframes pulse{50%{opacity:.6;}}
+.hint{font-size:.78rem; color:var(--muted); margin-top:.2rem;}
+.warn-box{
+  background:#fff7e6; border:1.5px solid #f0d493; color:#7a5b12;
+  border-radius:12px; padding:.6rem .8rem; font-size:.86rem; margin:.6rem 0;
+}
+.wa-box{background:#e9f8ef; border:1.5px solid #bfe6cd; border-radius:var(--radius); padding:.7rem .9rem; margin-bottom:.8rem;}
+.wa-box summary{font-weight:800; color:#1d7a44; cursor:pointer;}
+.photo-preview{max-width:100%; max-height:180px; border-radius:12px; margin-top:.4rem; display:block;}
+.missing{border-color:var(--sev-high) !important; background:#fff5f5;}
+
+/* ---------- detail ---------- */
+.detail-section{background:var(--card); border-radius:var(--radius); box-shadow:var(--shadow); padding:.7rem .9rem; margin-bottom:.7rem;}
+.detail-section h4{margin:.1rem 0 .4rem; color:var(--teal); font-size:.95rem;}
+.kv{display:grid; grid-template-columns:auto 1fr; gap:.15rem .7rem; font-size:.9rem;}
+.kv .k{color:var(--muted); font-weight:600; white-space:nowrap;}
+.qa-item{border-right:3px solid var(--blue); background:#f4f8fe; border-radius:10px; padding:.5rem .7rem; margin:.45rem 0; font-size:.88rem;}
+.qa-item .ans{border-right:3px solid var(--teal); background:#effbfc; border-radius:8px; padding:.4rem .6rem; margin-top:.4rem;}
+.qa-meta{font-size:.72rem; color:var(--muted);}
+.detail-actions{display:flex; gap:.5rem; flex-wrap:wrap; margin-top:.6rem;}
+
+/* ---------- reports/charts ---------- */
+.rep-metrics{display:grid; grid-template-columns:repeat(2,1fr); gap:.6rem; margin-bottom:1rem;}
+@media(min-width:700px){.rep-metrics{grid-template-columns:repeat(4,1fr);}}
+.rep-metric{background:var(--card); border-radius:var(--radius); box-shadow:var(--shadow); text-align:center; padding:.75rem .4rem;}
+.rep-metric .num{font-size:1.45rem; font-weight:800; color:var(--blue);}
+.rep-metric .lbl{font-size:.76rem; color:var(--muted); font-weight:600;}
+.chart-card{background:var(--card); border-radius:var(--radius); box-shadow:var(--shadow); padding:.8rem 1rem; margin-bottom:.8rem;}
+.chart-card h4{margin:.1rem 0 .6rem; color:var(--blue);}
+.bar-row{display:grid; grid-template-columns:7.5rem 1fr 2rem; align-items:center; gap:.5rem; margin:.3rem 0; font-size:.84rem;}
+.bar-row .lbl{color:var(--muted); font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+.bar-track{background:#eaeff7; border-radius:99px; height:1.05rem; overflow:hidden;}
+.bar-fill{height:100%; border-radius:99px; background:linear-gradient(90deg,var(--blue),var(--teal)); min-width:2px;}
+.bar-fill.sev-קל{background:var(--sev-low);}
+.bar-fill.sev-בינוני{background:var(--sev-mid);}
+.bar-fill.sev-חמור{background:var(--sev-high);}
+.bar-row .val{font-weight:800; text-align:left;}
+.data-actions{display:flex; gap:.5rem; flex-wrap:wrap; margin-top:1rem;}
+
+/* ---------- barcode video ---------- */
+#barcodeModal video{width:100%; border-radius:12px; background:#000;}
+
+/* ---------- print ---------- */
+#printArea{display:none;}
+@media print{
+  body > *:not(#printArea){display:none !important;}
+  #printArea{display:block; font-size:12pt; color:#000;}
+  #printArea .ph{
+    border-bottom:3px solid #1f66d0; padding-bottom:.3cm; margin-bottom:.4cm;
+  }
+  #printArea h1{font-size:16pt; margin:0; color:#1f66d0;}
+  #printArea .pt{width:100%; border-collapse:collapse; margin-bottom:.4cm;}
+  #printArea .pt caption{text-align:right; font-weight:bold; background:#e8eef8; padding:.12cm .2cm; border:1px solid #999; border-bottom:none;}
+  #printArea .pt td{border:1px solid #999; padding:.12cm .2cm; vertical-align:top;}
+  #printArea .pt td.k{background:#f3f5f9; font-weight:bold; width:4.2cm;}
+  #printArea .sig{margin-top:1cm; display:flex; justify-content:space-between;}
+  #printArea .sig div{border-top:1px solid #000; padding-top:.15cm; width:5cm; text-align:center; font-size:10pt;}
+}
+.toast{
+  position:fixed; bottom:5.5rem; right:50%; transform:translateX(50%);
+  background:#1c2733; color:#fff; padding:.6rem 1.1rem; border-radius:999px;
+  font-size:.9rem; z-index:200; opacity:0; transition:opacity .25s; pointer-events:none;
+  max-width:90vw; text-align:center;
+}
+.toast.show{opacity:1;}
+</style>
+</head>
+<body>
+
+<header class="app">
+  <div class="app-inner">
+    <div class="app-title-row">
+      <div>
+        <h1>תלונות ותקלות · אוונטאז' פטיסרי</h1>
+        <div class="sub">מערכת HACCP · טופס ט.נ 0201 · פעולות מתקנות</div>
+      </div>
+      <div class="role-wrap">
+        <span>תפקיד:</span>
+        <select id="roleSelect" onchange="setRole(this.value)">
+          <option value="מדווח">מדווח</option>
+          <option value="אחראי">אחראי</option>
+          <option value="מנהל איכות">מנהל איכות</option>
+        </select>
+      </div>
+    </div>
+    <nav class="tabs">
+      <button id="tabDash" class="active" onclick="showView('dashboard')">📋 דיווחים</button>
+      <button id="tabReports" onclick="showView('reports')">📊 דוחות ומגמות</button>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <!-- ============ DASHBOARD ============ -->
+  <section id="view-dashboard" class="view active">
+    <div class="stats">
+      <div class="stat open" onclick="quickFilter('פתוח')"><div class="num" id="statOpen">0</div><div class="lbl">פתוחות</div></div>
+      <div class="stat progress" onclick="quickFilter('בטיפול')"><div class="num" id="statProgress">0</div><div class="lbl">בטיפול</div></div>
+      <div class="stat done" onclick="quickFilter('הושלם')"><div class="num" id="statDone">0</div><div class="lbl">הושלמו</div></div>
+    </div>
+    <div class="filters">
+      <input type="search" id="searchBox" placeholder="🔍 חיפוש: מוצר, לקוח, נושא…" oninput="renderCards()">
+      <select id="statusFilter" onchange="renderCards()">
+        <option value="">כל הסטטוסים</option>
+        <option value="פתוח">פתוח</option>
+        <option value="בטיפול">בטיפול</option>
+        <option value="הושלם">הושלם</option>
+      </select>
+      <button class="chip-toggle" id="lateFilter" onclick="toggleLate()">⏰ באיחור</button>
+    </div>
+    <div class="cards" id="cardsList"></div>
+    <div class="empty" id="emptyMsg" style="display:none">
+      אין דיווחים להצגה.<br><br>
+      <button class="btn ghost" onclick="loadSampleData()">📦 טען נתוני דוגמה</button>
+    </div>
+  </section>
+
+  <!-- ============ REPORTS ============ -->
+  <section id="view-reports" class="view">
+    <div class="rep-metrics">
+      <div class="rep-metric"><div class="num" id="mClosureRate">0%</div><div class="lbl">שיעור סגירה</div></div>
+      <div class="rep-metric"><div class="num" id="mLate">0</div><div class="lbl">באיחור</div></div>
+      <div class="rep-metric"><div class="num" id="mSevere">0</div><div class="lbl">חמורים</div></div>
+      <div class="rep-metric"><div class="num" id="mRecall">0</div><div class="lbl">ריקול / דיווח לרשות</div></div>
+    </div>
+    <div class="chart-card"><h4>לפי מחלקה</h4><div id="chartDept"></div></div>
+    <div class="chart-card"><h4>לפי נושא תקלה</h4><div id="chartTopic"></div></div>
+    <div class="chart-card"><h4>לפי חומרה</h4><div id="chartSev"></div></div>
+    <div class="chart-card"><h4>לפי חודש</h4><div id="chartMonth"></div></div>
+    <div class="chart-card"><h4>⚠️ מוצרים חוזרים (2 תלונות ומעלה)</h4><div id="repeatProducts"></div></div>
+    <div class="data-actions">
+      <button class="btn ghost" onclick="exportCSV()">📄 ייצוא לאקסל (CSV)</button>
+      <button class="btn ghost" onclick="exportJSON()">💾 גיבוי JSON</button>
+      <button class="btn ghost" onclick="document.getElementById('importFile').click()">📂 טעינת גיבוי</button>
+      <input type="file" id="importFile" accept=".json" style="display:none" onchange="importJSON(this)">
+      <button class="btn ghost" onclick="loadSampleData()">📦 נתוני דוגמה</button>
+      <button class="btn danger" onclick="clearAll()">🗑️ מחיקת כל הנתונים</button>
+    </div>
+  </section>
+</main>
+
+<button class="fab" onclick="openForm()">＋ דיווח חדש</button>
+
+<!-- ============ FORM WIZARD ============ -->
+<div class="overlay" id="formOverlay">
+  <div class="modal">
+    <div class="modal-head">
+      <h2 id="formTitle">דיווח חדש</h2>
+      <button class="close-x" onclick="closeForm()">✕</button>
+    </div>
+    <div class="progress">
+      <div class="seg" id="seg1"></div><div class="seg" id="seg2"></div>
+      <div class="seg" id="seg3"></div><div class="seg" id="seg4"></div>
+    </div>
+
+    <!-- STEP 1 -->
+    <div class="wstep" id="wstep1">
+      <div class="step-title">שלב 1 · מה קרה?</div>
+
+      <details class="wa-box">
+        <summary>💬 קליטה מהודעת וואטסאפ</summary>
+        <label>הדביקו כאן את הודעת הלקוח</label>
+        <textarea id="waText" placeholder="לדוגמה: היי, קניתי אתמול עוגת מוס בבוטיק חולון ומצאתי שערה בפנים... 052-1234567"></textarea>
+        <button class="btn primary" style="margin-top:.5rem" onclick="parseWhatsApp()">🪄 נתח ומלא</button>
+        <div class="hint" id="waResult"></div>
+      </details>
+
+      <div class="fieldset">
+        <div class="grid2">
+          <div><label>תאריך קבלת התלונה</label><input type="date" id="f_dateReceived"></div>
+          <div><label>שם המדווח</label><select id="f_reporter"></select><input type="text" id="f_reporterOther" placeholder="שם המדווח…" style="display:none; margin-top:.3rem"></div>
+          <div><label>מחלקה רלוונטית</label><select id="f_department"></select></div>
+          <div><label>נושא התקלה <span class="req">*</span></label><select id="f_topic"></select></div>
+          <div><label>סוג הסכנה</label><select id="f_hazard"></select></div>
+          <div><label>חומרת סיכון</label><select id="f_severity"></select></div>
+        </div>
+        <label>שם המוצר <span class="req">*</span></label>
+        <div class="inline-tools">
+          <input type="text" id="f_product" placeholder="לדוגמה: עוגת מוס שוקולד">
+          <button class="icon-btn" title="סריקת ברקוד" onclick="scanBarcode()">📷</button>
+        </div>
+        <label>פרטי התקלה <span class="req">*</span></label>
+        <div class="inline-tools">
+          <textarea id="f_details" placeholder="תיאור מפורט של התקלה…"></textarea>
+          <button class="icon-btn" id="micBtn" title="הכתבה קולית" onclick="toggleDictation()">🎤</button>
+        </div>
+        <label>צילום ראיה</label>
+        <input type="file" id="f_photoInput" accept="image/*" capture="environment" onchange="handlePhoto(this)">
+        <img id="f_photoPreview" class="photo-preview" style="display:none" alt="צילום ראיה">
+      </div>
+      <div id="recurWarn"></div>
+    </div>
+
+    <!-- STEP 2 -->
+    <div class="wstep" id="wstep2">
+      <div class="step-title">שלב 2 · מקור התלונה</div>
+      <div class="fieldset">
+        <div class="grid2">
+          <div><label>מקור</label><select id="f_sourceType"><option>לקוח</option><option>צרכן</option></select></div>
+          <div><label>שם הלקוח / הצרכן</label><input type="text" id="f_customerName"></div>
+          <div><label>טלפון</label><input type="tel" id="f_phone" inputmode="tel" placeholder="05X-XXXXXXX"></div>
+          <div><label>אם צרכן — מהיכן רכש</label><input type="text" id="f_purchasePlace" placeholder="בוטיק / סניף / אתר"></div>
+          <div><label>מספר מנה / אצווה</label><input type="text" id="f_batch"></div>
+          <div><label>תאריך תפוגה</label><input type="date" id="f_expiry"></div>
+          <div><label>כמות</label><input type="text" id="f_quantity" placeholder="לדוגמה: 2 יחידות"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 3 -->
+    <div class="wstep" id="wstep3">
+      <div class="step-title">שלב 3 · טיפול ותיקון</div>
+      <div class="fieldset">
+        <div class="grid2">
+          <div><label>האם התקלה תוקנה?</label><select id="f_fixed"><option value=""></option><option>כן</option><option>לא</option><option>בטיפול</option></select></div>
+          <div><label>אחראי לביצוע</label><select id="f_assignee"></select><input type="text" id="f_assigneeOther" placeholder="שם האחראי…" style="display:none; margin-top:.3rem"></div>
+        </div>
+        <label>פעולת התיקון</label>
+        <textarea id="f_correctiveAction" placeholder="מה נעשה / מה יש לעשות…"></textarea>
+        <div class="grid2">
+          <div><label>החלטת מוצר</label><select id="f_productDecision"></select></div>
+          <div><label>כמות שנפסלה</label><input type="text" id="f_rejectedQty"></div>
+          <div><label>ריקול / דיווח לרשות?</label><select id="f_recall"><option value=""></option><option>לא</option><option>כן</option></select></div>
+          <div><label>עדכון סקר סיכונים?</label><select id="f_riskSurvey"><option value=""></option><option>לא</option><option>כן</option></select></div>
+          <div><label>לו"ז לביצוע</label><input type="date" id="f_dueDate"></div>
+          <div><label>סטטוס פעולה מתקנת</label><select id="f_caStatus"><option value=""></option><option>טרם החלה</option><option>בביצוע</option><option>הושלמה</option></select></div>
+        </div>
+        <label>סיבת שורש</label>
+        <textarea id="f_rootCause" placeholder="מדוע התקלה קרתה…"></textarea>
+      </div>
+      <div class="fieldset">
+        <label style="margin-top:.2rem">❓ שאלה לאחראי (אופציונלי)</label>
+        <select id="f_qTo"></select>
+        <input type="text" id="f_qToOther" placeholder="שם הנמען…" style="display:none; margin-top:.3rem">
+        <textarea id="f_qText" placeholder="נוסח השאלה… (ניתן להוסיף שאלות ותשובות נוספות ממסך הדיווח)" style="margin-top:.4rem; min-height:60px"></textarea>
+      </div>
+    </div>
+
+    <!-- STEP 4 -->
+    <div class="wstep" id="wstep4">
+      <div class="step-title">שלב 4 · אפקטיביות ואישור</div>
+      <div class="fieldset">
+        <div class="grid2">
+          <div><label>בדיקת אפקטיביות</label><select id="f_effectiveness"><option value=""></option><option>כן</option><option>לא</option><option>בתהליך</option></select></div>
+        </div>
+        <label>תוצאת הבדיקה</label>
+        <textarea id="f_effResult" placeholder="ממצאי בדיקת האפקטיביות…"></textarea>
+        <label>הערות</label>
+        <textarea id="f_notes"></textarea>
+        <label>חתימת מנהל איכות (שם מלא)</label>
+        <input type="text" id="f_qaSignature" placeholder="זמין למנהל איכות בלבד">
+        <div class="hint" id="qaHint"></div>
+        <div class="hint" id="closedAtHint"></div>
+      </div>
+    </div>
+
+    <div class="wiz-nav">
+      <button class="btn ghost" id="btnPrev" onclick="wizPrev()">→ הקודם</button>
+      <button class="btn primary" id="btnNext" onclick="wizNext()">הבא ←</button>
+      <button class="btn primary" id="btnSave" style="display:none" onclick="saveReport(false)">💾 שמירה</button>
+      <button class="btn primary" id="btnClose" style="display:none" onclick="saveReport(true)">✅ סגירה ואישור סופי</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ DETAIL ============ -->
+<div class="overlay" id="detailOverlay">
+  <div class="modal" id="detailModal"></div>
+</div>
+
+<!-- ============ BARCODE ============ -->
+<div class="overlay" id="barcodeModal">
+  <div class="modal">
+    <div class="modal-head"><h2>סריקת ברקוד</h2><button class="close-x" onclick="stopBarcode()">✕</button></div>
+    <video id="barcodeVideo" playsinline muted></video>
+    <div class="hint" style="margin-top:.5rem">כוונו את המצלמה אל הברקוד שעל המוצר</div>
+  </div>
+</div>
+
+<div id="printArea"></div>
+<div class="toast" id="toast"></div>
+
+<script>
+"use strict";
+/* ============================================================
+   תלונות ותקלות · אוונטאז' פטיסרי — כל הלוגיקה בצד לקוח
+   ============================================================ */
+const LS_KEY = "avantage_complaints_v1";
+const LS_ROLE = "avantage_role";
+
+const DEPARTMENTS = ["בחושות חלבי","עוגיות","קראנצים","אפויים","מוסים","קישים","קונדיטוריה","הפצה","אחר"];
+const TOPICS = ["גוף זר","עובש","איכות מוצר","עוגיה יבשה","מדבקות/תוכן","אריזה","אלרגן","טעם/ריח","כמות/ליקוט","טמפרטורה","אחר"];
+const HAZARDS = ["פיזיקלית","כימית","ביולוגית","אלרגן","אחר"];
+const SEVERITIES = ["קל","בינוני","חמור"];
+const DECISIONS = ["","שוחרר","החזרה ללקוח","פסילה","שחרור מותנה"];
+const PEOPLE = [
+  "עופר גל · בעלים","לי חסון · ראש צוות HACCP","חיים · סמנכ\"ל","גילה גילה · מנכ\"לית בוטיקים",
+  "חזי אפנס · מנהל נהגים","אביגייל · מנהלת בוטיק","לנה · מנהלת קונדיטוריה חולון",
+  "קטרינה · מנהלת קונדיטוריה אליהו איתן","אולגה · מנהלת קונדיטוריה לזרוב","שלומית · מנהלת משרד"
+];
+
+let reports = [];
+let role = localStorage.getItem(LS_ROLE) || "מדווח";
+let editingId = null;
+let wizStep = 1;
+let lateOnly = false;
+
+/* ---------- utils ---------- */
+const $ = id => document.getElementById(id);
+function esc(s){ return String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+function todayISO(){ const d=new Date(); return d.toISOString().slice(0,10); }
+function fmtDate(iso){ if(!iso) return "—"; const [y,m,d]=iso.split("-"); return `${d}.${m}.${y}`; }
+function fmtDateTime(ts){ if(!ts) return "—"; const d=new Date(ts); return d.toLocaleDateString("he-IL")+" "+d.toLocaleTimeString("he-IL",{hour:"2-digit",minute:"2-digit"}); }
+function toast(msg){ const t=$("toast"); t.textContent=msg; t.classList.add("show"); clearTimeout(t._h); t._h=setTimeout(()=>t.classList.remove("show"),2600); }
+function save(){ try{ localStorage.setItem(LS_KEY, JSON.stringify(reports)); }catch(e){ toast("⚠️ שגיאת שמירה — ייתכן שהאחסון מלא (נסו למחוק תמונות ישנות)"); } }
+function load(){ try{ reports = JSON.parse(localStorage.getItem(LS_KEY)) || []; }catch(e){ reports=[]; } }
+function isLate(r){ return r.dueDate && r.status!=="הושלם" && r.dueDate < todayISO(); }
+function statusOf(r){
+  if(r.closedAt) return "הושלם";
+  if(r.fixed || r.caStatus || r.correctiveAction || r.assignee) return "בטיפול";
+  return "פתוח";
+}
+
+function fillSelect(sel, items, withEmpty){
+  sel.innerHTML = (withEmpty?'<option value=""></option>':"") + items.map(i=>`<option>${esc(i)}</option>`).join("");
+}
+function personSelect(sel){
+  sel.innerHTML = '<option value=""></option>' + PEOPLE.map(p=>`<option>${esc(p)}</option>`).join("") + '<option value="__other">אחר…</option>';
+}
+function personValue(selId, otherId){
+  const v = $(selId).value;
+  return v === "__other" ? $(otherId).value.trim() : v;
+}
+function setPersonValue(selId, otherId, val){
+  if(!val){ $(selId).value=""; $(otherId).style.display="none"; $(otherId).value=""; return; }
+  if(PEOPLE.includes(val)){ $(selId).value=val; $(otherId).style.display="none"; $(otherId).value=""; }
+  else { $(selId).value="__other"; $(otherId).style.display="block"; $(otherId).value=val; }
+}
+
+/* ---------- role ---------- */
+function setRole(r){
+  role = r; localStorage.setItem(LS_ROLE, r);
+  toast("תפקיד נוכחי: " + r);
+}
+
+/* ---------- views ---------- */
+function showView(name){
+  $("view-dashboard").classList.toggle("active", name==="dashboard");
+  $("view-reports").classList.toggle("active", name==="reports");
+  $("tabDash").classList.toggle("active", name==="dashboard");
+  $("tabReports").classList.toggle("active", name==="reports");
+  if(name==="reports") renderReports();
+}
+
+/* ---------- dashboard ---------- */
+function quickFilter(st){
+  $("statusFilter").value = ($("statusFilter").value===st) ? "" : st;
+  renderCards();
+}
+function toggleLate(){ lateOnly=!lateOnly; $("lateFilter").classList.toggle("on", lateOnly); renderCards(); }
+
+function renderCards(){
+  reports.forEach(r => r.status = statusOf(r));
+  $("statOpen").textContent = reports.filter(r=>r.status==="פתוח").length;
+  $("statProgress").textContent = reports.filter(r=>r.status==="בטיפול").length;
+  $("statDone").textContent = reports.filter(r=>r.status==="הושלם").length;
+
+  const q = $("searchBox").value.trim();
+  const st = $("statusFilter").value;
+  let list = [...reports].sort((a,b)=> (b.dateReceived||"").localeCompare(a.dateReceived||"") || b.createdAt-a.createdAt);
+  if(st) list = list.filter(r=>r.status===st);
+  if(lateOnly) list = list.filter(isLate);
+  if(q) list = list.filter(r =>
+    [r.product,r.customerName,r.topic,r.department,r.details,r.batch].some(v => (v||"").includes(q)));
+
+  const box = $("cardsList");
+  box.innerHTML = list.map(r => `
+    <div class="card sev-${esc(r.severity||"קל")}" onclick="openDetail('${r.id}')">
+      <div class="badges">
+        <span class="badge st-${esc(r.status)}">${esc(r.status)}</span>
+        <span class="badge sev ${esc(r.severity||"")}"><span class="dot"></span>${esc(r.severity||"—")}</span>
+        ${isLate(r)?'<span class="badge late">⏰ באיחור</span>':""}
+        ${r.questions && r.questions.some(x=>!x.answer)?'<span class="badge" style="background:#eef2f8;color:#1f66d0;border:1px solid #c9d8f0">❓ ממתין לתשובה</span>':""}
+      </div>
+      <h3>${esc(r.topic||"ללא נושא")}</h3>
+      <div class="meta">🍰 <b>${esc(r.product||"—")}</b></div>
+      <div class="meta">👤 ${esc(r.customerName||"—")} · 🏭 ${esc(r.department||"—")}</div>
+      <div class="meta">📅 ${fmtDate(r.dateReceived)} ${r.dueDate?` · לו"ז: ${fmtDate(r.dueDate)}`:""}</div>
+    </div>`).join("");
+  $("emptyMsg").style.display = list.length ? "none" : "block";
+}
+
+/* ---------- recurring detection ---------- */
+function recurringFor(product, topic, excludeId){
+  const byProduct = reports.filter(r => r.id!==excludeId && product && r.product && r.product.trim()===product.trim());
+  const byTopic = reports.filter(r => r.id!==excludeId && topic && r.topic===topic);
+  return {byProduct, byTopic};
+}
+function renderRecurWarn(){
+  const p = $("f_product").value.trim(), t = $("f_topic").value;
+  const {byProduct, byTopic} = recurringFor(p, t, editingId);
+  let html = "";
+  if(p && byProduct.length >= 1)
+    html += `<div class="warn-box">⚠️ <b>תקלה חוזרת:</b> למוצר «${esc(p)}» כבר ${byProduct.length===1?"תלונה קודמת אחת":byProduct.length+" תלונות קודמות"}. מומלץ לשקול הסלמה לראש צוות HACCP ובדיקת סיבת שורש רוחבית.</div>`;
+  else if(t && byTopic.length >= 2)
+    html += `<div class="warn-box">⚠️ <b>נושא חוזר:</b> הנושא «${esc(t)}» הופיע כבר ${byTopic.length} פעמים. מומלץ לבחון מגמה במסך הדוחות ולשקול הסלמה.</div>`;
+  $("recurWarn").innerHTML = html;
+}
+
+/* ---------- wizard ---------- */
+function openForm(id){
+  editingId = id || null;
+  wizStep = 1;
+  $("formTitle").textContent = id ? "עריכת דיווח" : "דיווח חדש";
+  $("waText").value=""; $("waResult").textContent="";
+  const r = id ? reports.find(x=>x.id===id) : null;
+  // step1
+  $("f_dateReceived").value = r?.dateReceived || todayISO();
+  setPersonValue("f_reporter","f_reporterOther", r?.reporter || "");
+  $("f_department").value = r?.department || "";
+  $("f_topic").value = r?.topic || "";
+  $("f_hazard").value = r?.hazard || "";
+  $("f_severity").value = r?.severity || "קל";
+  $("f_product").value = r?.product || "";
+  $("f_details").value = r?.details || "";
+  $("f_photoInput").value = "";
+  window._photo = r?.photo || null;
+  $("f_photoPreview").style.display = window._photo ? "block":"none";
+  if(window._photo) $("f_photoPreview").src = window._photo;
+  // step2
+  $("f_sourceType").value = r?.sourceType || "לקוח";
+  $("f_customerName").value = r?.customerName || "";
+  $("f_phone").value = r?.phone || "";
+  $("f_purchasePlace").value = r?.purchasePlace || "";
+  $("f_batch").value = r?.batch || "";
+  $("f_expiry").value = r?.expiry || "";
+  $("f_quantity").value = r?.quantity || "";
+  // step3
+  $("f_fixed").value = r?.fixed || "";
+  setPersonValue("f_assignee","f_assigneeOther", r?.assignee || "");
+  $("f_correctiveAction").value = r?.correctiveAction || "";
+  $("f_productDecision").value = r?.productDecision || "";
+  $("f_rejectedQty").value = r?.rejectedQty || "";
+  $("f_recall").value = r?.recall || "";
+  $("f_riskSurvey").value = r?.riskSurvey || "";
+  $("f_dueDate").value = r?.dueDate || "";
+  $("f_caStatus").value = r?.caStatus || "";
+  $("f_rootCause").value = r?.rootCause || "";
+  setPersonValue("f_qTo","f_qToOther","");
+  $("f_qText").value = "";
+  // step4
+  $("f_effectiveness").value = r?.effectiveness || "";
+  $("f_effResult").value = r?.effResult || "";
+  $("f_notes").value = r?.notes || "";
+  $("f_qaSignature").value = r?.qaSignature || "";
+  const isQA = role==="מנהל איכות";
+  $("f_qaSignature").disabled = !isQA;
+  $("qaHint").textContent = isQA ? "" : "🔒 חתימה וסגירה סופית זמינות רק בתפקיד «מנהל איכות» (בחירה בכותרת למעלה).";
+  $("closedAtHint").textContent = r?.closedAt ? "נסגר ואושר: " + fmtDateTime(r.closedAt) : "";
+  renderRecurWarn();
+  showStep(1);
+  $("formOverlay").classList.add("open");
+}
+function closeForm(){ $("formOverlay").classList.remove("open"); stopDictation(); }
+
+function showStep(n){
+  wizStep = n;
+  for(let i=1;i<=4;i++){
+    $("wstep"+i).classList.toggle("active", i===n);
+    $("seg"+i).classList.toggle("done", i<=n);
+  }
+  $("btnPrev").style.display = n>1 ? "" : "none";
+  $("btnNext").style.display = n<4 ? "" : "none";
+  $("btnSave").style.display = n===4 ? "" : "none";
+  const canClose = role==="מנהל איכות";
+  $("btnClose").style.display = n===4 && canClose ? "" : "none";
+  document.querySelector("#formOverlay .modal").scrollTop = 0;
+}
+function validateStep1(){
+  let ok = true;
+  [["f_topic"],["f_product"],["f_details"]].forEach(([id])=>{
+    const el = $(id);
+    const bad = !el.value.trim();
+    el.classList.toggle("missing", bad);
+    if(bad) ok = false;
+  });
+  if(!ok) toast("נא למלא את שדות החובה: נושא, מוצר ופרטי התקלה");
+  return ok;
+}
+function wizNext(){
+  if(wizStep===1 && !validateStep1()) return;
+  if(wizStep===1) renderRecurWarn();
+  showStep(wizStep+1);
+}
+function wizPrev(){ showStep(wizStep-1); }
+
+function collectForm(){
+  return {
+    dateReceived: $("f_dateReceived").value,
+    reporter: personValue("f_reporter","f_reporterOther"),
+    department: $("f_department").value,
+    topic: $("f_topic").value,
+    hazard: $("f_hazard").value,
+    severity: $("f_severity").value,
+    product: $("f_product").value.trim(),
+    details: $("f_details").value.trim(),
+    photo: window._photo || null,
+    sourceType: $("f_sourceType").value,
+    customerName: $("f_customerName").value.trim(),
+    phone: $("f_phone").value.trim(),
+    purchasePlace: $("f_purchasePlace").value.trim(),
+    batch: $("f_batch").value.trim(),
+    expiry: $("f_expiry").value,
+    quantity: $("f_quantity").value.trim(),
+    fixed: $("f_fixed").value,
+    assignee: personValue("f_assignee","f_assigneeOther"),
+    correctiveAction: $("f_correctiveAction").value.trim(),
+    productDecision: $("f_productDecision").value,
+    rejectedQty: $("f_rejectedQty").value.trim(),
+    recall: $("f_recall").value,
+    riskSurvey: $("f_riskSurvey").value,
+    dueDate: $("f_dueDate").value,
+    caStatus: $("f_caStatus").value,
+    rootCause: $("f_rootCause").value.trim(),
+    effectiveness: $("f_effectiveness").value,
+    effResult: $("f_effResult").value.trim(),
+    notes: $("f_notes").value.trim(),
+    qaSignature: $("f_qaSignature").value.trim()
+  };
+}
+
+function saveReport(closeIt){
+  if(!validateStep1()){ showStep(1); return; }
+  if(closeIt){
+    if(role!=="מנהל איכות"){ toast("🔒 סגירה סופית מותרת רק למנהל איכות"); return; }
+    if(!$("f_qaSignature").value.trim()){ toast("נא למלא חתימת מנהל איכות לפני סגירה"); $("f_qaSignature").classList.add("missing"); return; }
+  }
+  const data = collectForm();
+  let r;
+  if(editingId){
+    r = reports.find(x=>x.id===editingId);
+    Object.assign(r, data);
+  } else {
+    r = Object.assign({
+      id: "r" + Date.now() + Math.random().toString(36).slice(2,6),
+      createdAt: Date.now(),
+      questions: [],
+      closedAt: null
+    }, data);
+    reports.push(r);
+  }
+  // שאלה חדשה מהטופס
+  const qTo = personValue("f_qTo","f_qToOther"), qText = $("f_qText").value.trim();
+  if(qText){
+    r.questions = r.questions || [];
+    r.questions.push({to: qTo||"—", text: qText, askedAt: Date.now(), answer: null, answeredAt: null});
+  }
+  if(closeIt){ r.closedAt = Date.now(); }
+  r.status = statusOf(r);
+  save();
+  closeForm();
+  renderCards();
+  toast(closeIt ? "✅ הדיווח נסגר ואושר סופית" : "💾 הדיווח נשמר");
+}
+
+/* ---------- photo ---------- */
+function handlePhoto(input){
+  const file = input.files && input.files[0];
+  if(!file) return;
+  const img = new Image();
+  const reader = new FileReader();
+  reader.onload = e => {
+    img.onload = () => {
+      const max = 900;
+      const scale = Math.min(1, max/Math.max(img.width,img.height));
+      const c = document.createElement("canvas");
+      c.width = Math.round(img.width*scale); c.height = Math.round(img.height*scale);
+      c.getContext("2d").drawImage(img,0,0,c.width,c.height);
+      window._photo = c.toDataURL("image/jpeg",.7);
+      $("f_photoPreview").src = window._photo;
+      $("f_photoPreview").style.display = "block";
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+/* ---------- WhatsApp parsing ---------- */
+const PRODUCT_HINTS = [
+  {re:/עוגת? מוס[^\s,.!?]*(?:\s+[א-ת]+)?/, dept:"מוסים"},
+  {re:/מוס(?:\s+[א-ת]+)?/, dept:"מוסים"},
+  {re:/קיש(?:\s+[א-ת]+)?/, dept:"קישים"},
+  {re:/עוגיות?(?:\s+[א-ת]+)?/, dept:"עוגיות"},
+  {re:/קראנץ[׳']?(?:ים)?(?:\s+[א-ת]+)?/, dept:"קראנצים"},
+  {re:/בחושה?(?:\s+[א-ת]+)?/, dept:"בחושות חלבי"},
+  {re:/(?:עוגה|עוגת)\s+[א-ת]+(?:\s+[א-ת]+)?/, dept:"קונדיטוריה"},
+  {re:/(?:קרואסון|מאפה|בורקס|לחמניי?ה|לחם)(?:\s+[א-ת]+)?/, dept:"אפויים"},
+  {re:/(?:טארט|פחזניי?ה|אקלר|מקרון)(?:\s+[א-ת]+)?/, dept:"קונדיטוריה"}
+];
+const TOPIC_HINTS = [
+  {re:/שערה|שער\b|פלסטיק|זכוכית|מתכת|גוף זר|חוט|אבן/, topic:"גוף זר", hazard:"פיזיקלית"},
+  {re:/עובש|עבש|ירוק על|התעפש/, topic:"עובש", hazard:"ביולוגית"},
+  {re:/יבש|יבשה|התייבש/, topic:"עוגיה יבשה", hazard:"אחר"},
+  {re:/אלרגי|אלרגן|אגוז|בוטן|גלוטן/, topic:"אלרגן", hazard:"אלרגן"},
+  {re:/מדבקה|תווית|תאריך על|סימון/, topic:"מדבקות/תוכן", hazard:"אחר"},
+  {re:/אריזה|נפתח|קרוע|שבור|נמעך|נשפך/, topic:"אריזה", hazard:"פיזיקלית"},
+  {re:/טעם|ריח|חמוץ|מר\b|מקולקל|חמצמץ/, topic:"טעם/ריח", hazard:"ביולוגית"},
+  {re:/חסר|כמות|ליקוט|לא קיבל|הזמנתי.*קיבלתי/, topic:"כמות/ליקוט", hazard:"אחר"},
+  {re:/קר\b|חם\b|טמפרטורה|הפשיר|נמס|קפוא/, topic:"טמפרטורה", hazard:"ביולוגית"}
+];
+function parseWhatsApp(){
+  const text = $("waText").value;
+  if(!text.trim()){ toast("נא להדביק הודעה קודם"); return; }
+  const found = [], missing = [];
+
+  const phone = text.match(/0\d{1,2}[- ]?\d{3}[- ]?\d{4}|0\d{9}/);
+  if(phone){ $("f_phone").value = phone[0].replace(/\s/g,""); found.push("טלפון"); } else missing.push("טלפון");
+
+  const dm = text.match(/(\d{1,2})[.\/](\d{1,2})(?:[.\/](\d{2,4}))?/);
+  if(dm){
+    let y = dm[3] ? (dm[3].length===2 ? "20"+dm[3] : dm[3]) : String(new Date().getFullYear());
+    const iso = `${y}-${dm[2].padStart(2,"0")}-${dm[1].padStart(2,"0")}`;
+    if(!isNaN(new Date(iso))){ $("f_dateReceived").value = iso; found.push("תאריך"); }
+  }
+
+  let matchedProduct = null;
+  for(const h of PRODUCT_HINTS){
+    const m = text.match(h.re);
+    if(m){ matchedProduct = m[0].trim(); $("f_product").value = matchedProduct; $("f_department").value = h.dept; found.push("מוצר","מחלקה"); break; }
+  }
+  if(!matchedProduct) missing.push("שם מוצר");
+
+  let matchedTopic = null;
+  for(const h of TOPIC_HINTS){
+    if(h.re.test(text)){ matchedTopic = h.topic; $("f_topic").value = h.topic; $("f_hazard").value = h.hazard; found.push("נושא תקלה","סוג סכנה"); break; }
+  }
+  if(!matchedTopic) missing.push("נושא תקלה");
+
+  // ניסיון לזהות שם בתחילת ההודעה: "היי, כאן/מדבר/זה X" או שם לפני מספר טלפון
+  const nameM = text.match(/(?:שמי|קוראים לי|מדבר(?:ת)?|כאן|זו|זה)\s+([א-ת]{2,}(?:\s[א-ת]{2,})?)/);
+  if(nameM){ $("f_customerName").value = nameM[1]; found.push("שם לקוח"); } else missing.push("שם לקוח");
+
+  const placeM = text.match(/(?:קניתי|רכשתי|הזמנתי)[^.,!\n]*?ב(?:בוטיק|סניף|חנות)?\s*([א-ת" ]{2,20})/);
+  if(placeM){ $("f_purchasePlace").value = placeM[1].trim(); $("f_sourceType").value = "צרכן"; found.push("מקום רכישה"); }
+
+  $("f_details").value = ($("f_details").value ? $("f_details").value + "\n" : "") + "מקור: הודעת וואטסאפ —\n" + text.trim();
+  found.push("פרטי התקלה");
+
+  // סימון שדות חסרים להשלמה
+  ["f_product","f_topic"].forEach(id => $(id).classList.toggle("missing", !$(id).value.trim()));
+  if(!$("f_customerName").value) $("f_customerName").classList.add("missing"); else $("f_customerName").classList.remove("missing");
+
+  $("waResult").innerHTML =
+    (found.length? "✅ זוהו: " + [...new Set(found)].join(", ") + ". " : "") +
+    (missing.length? "<b style='color:#d64545'>להשלמה ידנית: " + missing.join(", ") + "</b>" : "");
+  renderRecurWarn();
+  toast("🪄 הניתוח הושלם — בדקו את השדות");
+}
+
+/* ---------- detail view ---------- */
+function openDetail(id){
+  const r = reports.find(x=>x.id===id);
+  if(!r) return;
+  r.status = statusOf(r);
+  const {byProduct, byTopic} = recurringFor(r.product, r.topic, r.id);
+  const recurHtml = (byProduct.length>=1)
+    ? `<div class="warn-box">⚠️ תקלה חוזרת: למוצר «${esc(r.product)}» ${byProduct.length===1?"תלונה קודמת אחת":byProduct.length+" תלונות נוספות"}. מומלץ להסלים לראש צוות HACCP.</div>`
+    : (byTopic.length>=2 ? `<div class="warn-box">⚠️ הנושא «${esc(r.topic)}» חוזר (${byTopic.length+1} מקרים). בדקו מגמה במסך הדוחות.</div>` : "");
+
+  const kv = pairs => `<div class="kv">${pairs.filter(p=>p[1]).map(p=>`<span class="k">${p[0]}</span><span>${esc(p[1])}</span>`).join("")}</div>`;
+
+  const qaHtml = (r.questions||[]).map((q,i)=>`
+    <div class="qa-item">
+      <div class="qa-meta">❓ אל: ${esc(q.to)} · ${fmtDateTime(q.askedAt)}</div>
+      <div>${esc(q.text)}</div>
+      ${q.answer
+        ? `<div class="ans"><div class="qa-meta">💬 תשובה · ${fmtDateTime(q.answeredAt)}</div>${esc(q.answer)}</div>`
+        : `<div style="margin-top:.4rem; display:flex; gap:.4rem">
+             <input type="text" id="ans_${i}" placeholder="הקלדת תשובת האחראי…">
+             <button class="btn small primary" onclick="answerQuestion('${r.id}',${i})">שלח</button>
+           </div>`}
+    </div>`).join("") || '<div class="hint">אין שאלות עדיין.</div>';
+
+  const canClose = role==="מנהל איכות";
+  $("detailModal").innerHTML = `
+    <div class="modal-head">
+      <h2>${esc(r.topic)} · ${esc(r.product)}</h2>
+      <button class="close-x" onclick="closeDetail()">✕</button>
+    </div>
+    <div class="badges" style="margin-bottom:.6rem">
+      <span class="badge st-${esc(r.status)}">${esc(r.status)}</span>
+      <span class="badge sev ${esc(r.severity||"")}"><span class="dot"></span>${esc(r.severity||"—")}</span>
+      ${isLate(r)?'<span class="badge late">⏰ באיחור</span>':""}
+    </div>
+    ${recurHtml}
+    <div class="detail-section"><h4>שלב 1 · מה קרה</h4>
+      ${kv([["תאריך קבלה",fmtDate(r.dateReceived)],["מדווח",r.reporter],["מחלקה",r.department],["נושא",r.topic],["סוג סכנה",r.hazard],["חומרה",r.severity],["מוצר",r.product],["פרטים",r.details]])}
+      ${r.photo?`<img src="${r.photo}" class="photo-preview" alt="צילום ראיה">`:""}
+    </div>
+    <div class="detail-section"><h4>שלב 2 · מקור התלונה</h4>
+      ${kv([["מקור",r.sourceType],["שם",r.customerName],["טלפון",r.phone],["מקום רכישה",r.purchasePlace],["מנה/אצווה",r.batch],["תפוגה",r.expiry?fmtDate(r.expiry):""],["כמות",r.quantity]])}
+    </div>
+    <div class="detail-section"><h4>שלב 3 · טיפול ותיקון</h4>
+      ${kv([["תוקנה?",r.fixed],["פעולת תיקון",r.correctiveAction],["אחראי",r.assignee],["החלטת מוצר",r.productDecision],["כמות שנפסלה",r.rejectedQty],["ריקול/דיווח לרשות",r.recall],["סיבת שורש",r.rootCause],["עדכון סקר סיכונים",r.riskSurvey],['לו"ז',r.dueDate?fmtDate(r.dueDate):""],["סטטוס פעולה",r.caStatus]])}
+    </div>
+    <div class="detail-section"><h4>שלב 4 · אפקטיביות ואישור</h4>
+      ${kv([["בדיקת אפקטיביות",r.effectiveness],["תוצאה",r.effResult],["הערות",r.notes],["חתימת מנהל איכות",r.qaSignature],["נסגר ב",r.closedAt?fmtDateTime(r.closedAt):""]])}
+    </div>
+    <div class="detail-section"><h4>❓ שאלות לאחראי</h4>
+      ${qaHtml}
+      <div style="margin-top:.6rem">
+        <label>שאלה חדשה — נמען</label>
+        <select id="newQTo">${'<option value=""></option>'+PEOPLE.map(p=>`<option>${esc(p)}</option>`).join("")+'<option value="__other">אחר…</option>'}</select>
+        <input type="text" id="newQToOther" placeholder="שם הנמען…" style="display:none; margin-top:.3rem">
+        <div style="display:flex; gap:.4rem; margin-top:.4rem">
+          <input type="text" id="newQText" placeholder="נוסח השאלה…">
+          <button class="btn small primary" onclick="addQuestion('${r.id}')">שלח</button>
+        </div>
+      </div>
+    </div>
+    <div class="detail-actions">
+      <button class="btn primary" onclick="closeDetail(); openForm('${r.id}')">✏️ עריכה</button>
+      <button class="btn ghost" onclick="printReport('${r.id}')">🖨️ ייצוא PDF</button>
+      ${!r.closedAt && canClose ? `<button class="btn ghost" style="background:#e5f6ee;color:#1d7a44" onclick="closeDetail(); openForm('${r.id}'); showStep(4)">✅ סגירה ואישור</button>` : ""}
+      ${!canClose && !r.closedAt ? `<span class="hint" style="align-self:center">🔒 סגירה סופית — מנהל איכות בלבד</span>`:""}
+      <button class="btn danger" onclick="deleteReport('${r.id}')">🗑️ מחיקה</button>
+    </div>`;
+  const sel = $("newQTo");
+  sel.addEventListener("change", ()=>{ $("newQToOther").style.display = sel.value==="__other" ? "block":"none"; });
+  $("detailOverlay").classList.add("open");
+  $("detailModal").scrollTop = 0;
+}
+function closeDetail(){ $("detailOverlay").classList.remove("open"); }
+function addQuestion(id){
+  const r = reports.find(x=>x.id===id);
+  const toSel = $("newQTo").value;
+  const to = toSel==="__other" ? $("newQToOther").value.trim() : toSel;
+  const text = $("newQText").value.trim();
+  if(!text){ toast("נא להקליד שאלה"); return; }
+  r.questions = r.questions || [];
+  r.questions.push({to: to||"—", text, askedAt: Date.now(), answer:null, answeredAt:null});
+  save(); openDetail(id); renderCards();
+  toast("❓ השאלה נרשמה");
+}
+function answerQuestion(id, idx){
+  const r = reports.find(x=>x.id===id);
+  const val = $("ans_"+idx).value.trim();
+  if(!val){ toast("נא להקליד תשובה"); return; }
+  r.questions[idx].answer = val;
+  r.questions[idx].answeredAt = Date.now();
+  save(); openDetail(id); renderCards();
+  toast("💬 התשובה נשמרה");
+}
+function deleteReport(id){
+  if(!confirm("למחוק את הדיווח לצמיתות?")) return;
+  reports = reports.filter(x=>x.id!==id);
+  save(); closeDetail(); renderCards();
+  toast("🗑️ הדיווח נמחק");
+}
+
+/* ---------- print / PDF ---------- */
+function printReport(id){
+  const r = reports.find(x=>x.id===id);
+  const row = (k,v) => `<tr><td class="k">${esc(k)}</td><td>${esc(v||"—")}</td></tr>`;
+  const qa = (r.questions||[]).map(q =>
+    `<tr><td class="k">שאלה אל ${esc(q.to)}</td><td>${esc(q.text)}<br><b>תשובה:</b> ${esc(q.answer||"טרם נענתה")}</td></tr>`).join("");
+  $("printArea").innerHTML = `
+    <div class="ph">
+      <h1>אוונטאז' פטיסרי — דוח תלונה / תקלה ופעולה מתקנת</h1>
+      <div>טופס ט.נ 0201 · מערכת HACCP · הודפס: ${fmtDateTime(Date.now())}</div>
+      <div>סטטוס: <b>${esc(r.status)}</b> · חומרה: <b>${esc(r.severity||"—")}</b></div>
+    </div>
+    <table class="pt"><caption>שלב 1 — פרטי האירוע</caption>
+      ${row("תאריך קבלת התלונה",fmtDate(r.dateReceived))}${row("שם המדווח",r.reporter)}
+      ${row("מחלקה",r.department)}${row("נושא התקלה",r.topic)}${row("סוג הסכנה",r.hazard)}
+      ${row("חומרת סיכון",r.severity)}${row("שם המוצר",r.product)}${row("פרטי התקלה",r.details)}
+    </table>
+    <table class="pt"><caption>שלב 2 — מקור התלונה</caption>
+      ${row("מקור",r.sourceType)}${row("שם הלקוח/צרכן",r.customerName)}${row("טלפון",r.phone)}
+      ${row("מקום רכישה",r.purchasePlace)}${row("מספר מנה/אצווה",r.batch)}
+      ${row("תאריך תפוגה",r.expiry?fmtDate(r.expiry):"")}${row("כמות",r.quantity)}
+    </table>
+    <table class="pt"><caption>שלב 3 — טיפול ותיקון</caption>
+      ${row("האם תוקנה",r.fixed)}${row("פעולת התיקון",r.correctiveAction)}${row("אחראי לביצוע",r.assignee)}
+      ${row("החלטת מוצר",r.productDecision)}${row("כמות שנפסלה",r.rejectedQty)}
+      ${row("ריקול/דיווח לרשות",r.recall)}${row("סיבת שורש",r.rootCause)}
+      ${row("עדכון סקר סיכונים",r.riskSurvey)}${row('לו"ז לביצוע',r.dueDate?fmtDate(r.dueDate):"")}
+      ${row("סטטוס פעולה מתקנת",r.caStatus)}${qa}
+    </table>
+    <table class="pt"><caption>שלב 4 — אפקטיביות ואישור</caption>
+      ${row("בדיקת אפקטיביות",r.effectiveness)}${row("תוצאת הבדיקה",r.effResult)}
+      ${row("הערות",r.notes)}${row("חתימת מנהל איכות",r.qaSignature)}
+      ${row("מועד סגירה ואישור",r.closedAt?fmtDateTime(r.closedAt):"")}
+    </table>
+    ${r.photo?`<div><b>צילום ראיה:</b><br><img src="${r.photo}" style="max-width:9cm; border:1px solid #999"></div>`:""}
+    <div class="sig"><div>חתימת מנהל איכות</div><div>תאריך</div></div>`;
+  window.print();
+}
+
+/* ---------- reports & charts ---------- */
+function barChart(containerId, counts, sevColors){
+  const entries = Object.entries(counts).filter(([,v])=>v>0).sort((a,b)=>b[1]-a[1]);
+  const max = Math.max(1, ...entries.map(e=>e[1]));
+  $(containerId).innerHTML = entries.length ? entries.map(([k,v])=>`
+    <div class="bar-row">
+      <span class="lbl">${esc(k)}</span>
+      <div class="bar-track"><div class="bar-fill ${sevColors?("sev-"+esc(k)):""}" style="width:${(v/max*100).toFixed(1)}%"></div></div>
+      <span class="val">${v}</span>
+    </div>`).join("") : '<div class="hint">אין נתונים.</div>';
+}
+function renderReports(){
+  reports.forEach(r => r.status = statusOf(r));
+  const total = reports.length;
+  const done = reports.filter(r=>r.status==="הושלם").length;
+  $("mClosureRate").textContent = total ? Math.round(done/total*100)+"%" : "0%";
+  $("mLate").textContent = reports.filter(isLate).length;
+  $("mSevere").textContent = reports.filter(r=>r.severity==="חמור").length;
+  $("mRecall").textContent = reports.filter(r=>r.recall==="כן").length;
+
+  const count = (arr, key) => arr.reduce((a,r)=>{ const k=r[key]||"לא צוין"; a[k]=(a[k]||0)+1; return a; },{});
+  barChart("chartDept", count(reports,"department"));
+  barChart("chartTopic", count(reports,"topic"));
+  barChart("chartSev", count(reports,"severity"), true);
+
+  const byMonth = {};
+  reports.forEach(r=>{
+    if(!r.dateReceived) return;
+    const [y,m] = r.dateReceived.split("-");
+    byMonth[`${m}/${y}`] = (byMonth[`${m}/${y}`]||0)+1;
+  });
+  const sortedMonth = Object.fromEntries(Object.entries(byMonth).sort((a,b)=>{
+    const [ma,ya]=a[0].split("/"), [mb,yb]=b[0].split("/");
+    return (ya+ma).localeCompare(yb+mb);
+  }));
+  // הצגה לפי סדר כרונולוגי (ללא מיון לפי גודל)
+  const maxM = Math.max(1, ...Object.values(sortedMonth));
+  $("chartMonth").innerHTML = Object.keys(sortedMonth).length ? Object.entries(sortedMonth).map(([k,v])=>`
+    <div class="bar-row"><span class="lbl">${esc(k)}</span>
+    <div class="bar-track"><div class="bar-fill" style="width:${(v/maxM*100).toFixed(1)}%"></div></div>
+    <span class="val">${v}</span></div>`).join("") : '<div class="hint">אין נתונים.</div>';
+
+  const byProduct = count(reports,"product");
+  const repeats = Object.entries(byProduct).filter(([k,v])=>v>=2 && k!=="לא צוין").sort((a,b)=>b[1]-a[1]);
+  $("repeatProducts").innerHTML = repeats.length
+    ? repeats.map(([k,v])=>`<div class="bar-row"><span class="lbl">${esc(k)}</span><div class="bar-track"><div class="bar-fill sev-חמור" style="width:${(v/repeats[0][1]*100).toFixed(1)}%"></div></div><span class="val">${v}</span></div>`).join("")
+      + '<div class="hint" style="margin-top:.4rem">מומלץ: פתיחת פעולה מתקנת רוחבית ועדכון סקר סיכונים למוצרים אלה.</div>'
+    : '<div class="hint">אין מוצרים חוזרים — מצוין! 🎉</div>';
+}
+
+/* ---------- CSV export ---------- */
+function exportCSV(){
+  const headers = ["מס' דיווח","תאריך קבלת התלונה","שם המדווח","מחלקה","נושא התקלה","סוג הסכנה","חומרת סיכון","שם המוצר","פרטי התקלה","מקור","שם הלקוח/צרכן","טלפון","מקום רכישה","מספר מנה/אצווה","תאריך תפוגה","כמות","האם תוקנה","פעולת התיקון","אחראי לביצוע","החלטת מוצר","כמות שנפסלה","ריקול/דיווח לרשות","סיבת שורש","עדכון סקר סיכונים","לו\"ז לביצוע","סטטוס פעולה מתקנת","בדיקת אפקטיביות","תוצאת הבדיקה","הערות","חתימת מנהל איכות","מועד סגירה","סטטוס"];
+  const q = v => `"${String(v??"").replace(/"/g,'""').replace(/\r?\n/g," ")}"`;
+  const rows = reports.map((r,i)=>[
+    i+1, fmtDate(r.dateReceived), r.reporter, r.department, r.topic, r.hazard, r.severity, r.product, r.details,
+    r.sourceType, r.customerName, r.phone, r.purchasePlace, r.batch, r.expiry?fmtDate(r.expiry):"", r.quantity,
+    r.fixed, r.correctiveAction, r.assignee, r.productDecision, r.rejectedQty, r.recall, r.rootCause, r.riskSurvey,
+    r.dueDate?fmtDate(r.dueDate):"", r.caStatus, r.effectiveness, r.effResult, r.notes, r.qaSignature,
+    r.closedAt?fmtDateTime(r.closedAt):"", r.status
+  ].map(q).join(","));
+  const csv = "﻿" + headers.map(q).join(",") + "\r\n" + rows.join("\r\n");
+  downloadFile(csv, "text/csv;charset=utf-8", `תלונות-אוונטאז-${todayISO()}.csv`);
+  toast("📄 קובץ CSV ירד — נפתח באקסל");
+}
+function exportJSON(){
+  downloadFile(JSON.stringify(reports,null,1), "application/json", `גיבוי-תלונות-${todayISO()}.json`);
+  toast("💾 קובץ גיבוי ירד");
+}
+function importJSON(input){
+  const file = input.files && input.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try{
+      const data = JSON.parse(e.target.result);
+      if(!Array.isArray(data)) throw new Error();
+      if(!confirm(`לטעון ${data.length} דיווחים מהגיבוי? (יחליף את הנתונים הנוכחיים)`)) return;
+      reports = data; save(); renderCards(); renderReports();
+      toast("📂 הגיבוי נטען בהצלחה");
+    }catch(err){ toast("⚠️ קובץ לא תקין"); }
+  };
+  reader.readAsText(file);
+  input.value = "";
+}
+function downloadFile(content, mime, name){
+  const blob = new Blob([content], {type:mime});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = name;
+  document.body.appendChild(a); a.click();
+  setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); }, 500);
+}
+function clearAll(){
+  if(!confirm("למחוק את כל הדיווחים לצמיתות? מומלץ לבצע גיבוי JSON קודם.")) return;
+  if(!confirm("בטוחים? פעולה זו אינה הפיכה.")) return;
+  reports = []; save(); renderCards(); renderReports();
+  toast("🗑️ כל הנתונים נמחקו");
+}
+
+/* ---------- voice dictation ---------- */
+let recognition = null, dictating = false;
+function toggleDictation(){
+  if(dictating){ stopDictation(); return; }
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if(!SR){ toast("🎤 הדפדפן לא תומך בהכתבה קולית — ניתן להקליד ידנית"); return; }
+  recognition = new SR();
+  recognition.lang = "he-IL";
+  recognition.continuous = true;
+  recognition.interimResults = false;
+  recognition.onresult = e => {
+    let text = "";
+    for(let i=e.resultIndex; i<e.results.length; i++)
+      if(e.results[i].isFinal) text += e.results[i][0].transcript + " ";
+    if(text){
+      const ta = $("f_details");
+      ta.value = (ta.value ? ta.value.trim() + " " : "") + text.trim();
+    }
+  };
+  recognition.onerror = e => { toast("🎤 שגיאת הכתבה: " + (e.error==="not-allowed"?"אין הרשאת מיקרופון":"נסו שוב")); stopDictation(); };
+  recognition.onend = () => { if(dictating){ try{ recognition.start(); }catch(_){} } };
+  try{
+    recognition.start();
+    dictating = true;
+    $("micBtn").classList.add("rec");
+    toast("🎤 מקליט… לחצו שוב לעצירה");
+  }catch(err){ toast("🎤 לא ניתן להפעיל הכתבה"); }
+}
+function stopDictation(){
+  dictating = false;
+  $("micBtn") && $("micBtn").classList.remove("rec");
+  if(recognition){ try{ recognition.stop(); }catch(_){} recognition = null; }
+}
+
+/* ---------- barcode ---------- */
+let barcodeStream = null, barcodeTimer = null;
+async function scanBarcode(){
+  if(!("BarcodeDetector" in window)){
+    toast("📷 הדפדפן לא תומך בסריקת ברקוד — ניתן להקליד את שם/קוד המוצר ידנית");
+    $("f_product").focus();
+    return;
+  }
+  try{
+    barcodeStream = await navigator.mediaDevices.getUserMedia({video:{facingMode:"environment"}});
+  }catch(err){ toast("📷 אין גישה למצלמה — ניתן להקליד ידנית"); return; }
+  const video = $("barcodeVideo");
+  video.srcObject = barcodeStream;
+  await video.play();
+  $("barcodeModal").classList.add("open");
+  const detector = new BarcodeDetector();
+  barcodeTimer = setInterval(async ()=>{
+    try{
+      const codes = await detector.detect(video);
+      if(codes.length){
+        const val = codes[0].rawValue;
+        const cur = $("f_product").value.trim();
+        $("f_product").value = cur ? `${cur} (ברקוד: ${val})` : `ברקוד: ${val}`;
+        stopBarcode();
+        toast("📷 ברקוד נסרק: " + val);
+      }
+    }catch(_){}
+  }, 400);
+}
+function stopBarcode(){
+  clearInterval(barcodeTimer); barcodeTimer = null;
+  if(barcodeStream){ barcodeStream.getTracks().forEach(t=>t.stop()); barcodeStream = null; }
+  $("barcodeModal").classList.remove("open");
+}
+
+/* ---------- sample data ---------- */
+function loadSampleData(){
+  if(reports.length && !confirm("להוסיף נתוני דוגמה לנתונים הקיימים?")) return;
+  const now = Date.now(), day = 86400000;
+  const d = n => new Date(now - n*day).toISOString().slice(0,10);
+  const samples = [
+    {dateReceived:d(2), reporter:PEOPLE[6], department:"מוסים", topic:"גוף זר", hazard:"פיזיקלית", severity:"חמור",
+     product:"עוגת מוס שוקולד", details:"לקוחה מצאה שערה בתוך העוגה. הוחזרה לבוטיק חולון.",
+     sourceType:"צרכן", customerName:"רותי כהן", phone:"052-1234567", purchasePlace:"בוטיק חולון", batch:"A-2231", quantity:"1 יחידה",
+     fixed:"בטיפול", assignee:PEOPLE[1], correctiveAction:"תדריך רענון לכיסוי שיער לכל צוות המוסים + בדיקת רשתות שיער.",
+     productDecision:"פסילה", rejectedQty:"12 יחידות מהאצווה", recall:"לא", rootCause:"רשת שיער לא תקינה אצל עובד חדש",
+     riskSurvey:"כן", dueDate:d(-3), caStatus:"בביצוע",
+     questions:[{to:PEOPLE[6], text:"האם כל העובדים במשמרת חבשו רשת שיער?", askedAt:now-day, answer:"כן, למעט עובד חדש שקיבל תדריך היום.", answeredAt:now-day/2}]},
+    {dateReceived:d(6), reporter:PEOPLE[5], department:"עוגיות", topic:"עוגיה יבשה", hazard:"אחר", severity:"קל",
+     product:"עוגיות חמאה", details:"לקוח דיווח שהעוגיות יבשות מהרגיל.", sourceType:"לקוח", customerName:"קפה נמרוד", phone:"03-5551234",
+     batch:"C-118", quantity:"2 מארזים", fixed:"כן", assignee:PEOPLE[7], correctiveAction:"כיול מחדש של זמן האפייה בתנור 2.",
+     productDecision:"החזרה ללקוח", recall:"לא", rootCause:"סטיית טמפרטורה בתנור", riskSurvey:"לא", dueDate:d(1), caStatus:"הושלמה",
+     effectiveness:"כן", effResult:"נבדקו 3 אצוות עוקבות — תקינות.", qaSignature:"לי חסון", closedAt: now - day*1,
+     questions:[]},
+    {dateReceived:d(9), reporter:PEOPLE[4], department:"הפצה", topic:"טמפרטורה", hazard:"ביולוגית", severity:"בינוני",
+     product:"קיש פטריות", details:"משלוח הגיע ללקוח בטמפרטורה גבוהה מהנדרש — המקרר ברכב לא עבד תקין.",
+     sourceType:"לקוח", customerName:"מסעדת הגן", phone:"050-9876543", quantity:"8 יחידות",
+     fixed:"בטיפול", assignee:PEOPLE[4], correctiveAction:"תיקון מערכת הקירור ברכב 3 + בדיקת טמפרטורה יומית מתועדת.",
+     productDecision:"פסילה", rejectedQty:"8 יחידות", recall:"לא", rootCause:"תקלת מדחס ברכב הפצה",
+     riskSurvey:"כן", dueDate:d(2), caStatus:"בביצוע", questions:[]},
+    {dateReceived:d(14), reporter:PEOPLE[8], department:"מוסים", topic:"גוף זר", hazard:"פיזיקלית", severity:"בינוני",
+     product:"עוגת מוס שוקולד", details:"נמצא שבר פלסטיק קטן בתחתית העוגה.", sourceType:"צרכן", customerName:"דנה לוי",
+     phone:"054-1112233", purchasePlace:"בוטיק לזרוב", batch:"A-2198", quantity:"1 יחידה",
+     fixed:"", assignee:"", correctiveAction:"", productDecision:"", recall:"", rootCause:"", riskSurvey:"", dueDate:"", caStatus:"",
+     questions:[{to:PEOPLE[8], text:"מאיזה ציוד ייתכן שהגיע הפלסטיק?", askedAt:now-day*2, answer:null, answeredAt:null}]},
+    {dateReceived:d(20), reporter:PEOPLE[9], department:"אפויים", topic:"מדבקות/תוכן", hazard:"אחר", severity:"קל",
+     product:"קרואסון שקדים", details:"מדבקת רכיבים שגויה — הודפסה מדבקה של קרואסון חמאה.",
+     sourceType:"לקוח", customerName:"מלון רויאל", phone:"09-7654321", quantity:"מארז אחד",
+     fixed:"כן", assignee:PEOPLE[9], correctiveAction:"עדכון תבנית מדבקות ובדיקה כפולה לפני הדפסה.",
+     productDecision:"החזרה ללקוח", recall:"לא", rootCause:"טעות אנוש בבחירת תבנית", riskSurvey:"לא", dueDate:d(15), caStatus:"הושלמה",
+     effectiveness:"כן", effResult:"שבועיים ללא הישנות.", qaSignature:"לי חסון", closedAt: now - day*12, questions:[]},
+    {dateReceived:d(35), reporter:PEOPLE[3], department:"קראנצים", topic:"אלרגן", hazard:"אלרגן", severity:"חמור",
+     product:"קראנץ' לוטוס", details:"חשש לנוכחות שברי אגוזים במוצר שאינו מסומן כמכיל אגוזים.",
+     sourceType:"צרכן", customerName:"יעל ברק", phone:"053-4445566", purchasePlace:"בוטיק אליהו איתן", batch:"K-77", quantity:"1 יחידה",
+     fixed:"כן", assignee:PEOPLE[1], correctiveAction:"הפרדת קווי ייצור + ניקוי יסודי + עדכון נוהל אלרגנים.",
+     productDecision:"פסילה", rejectedQty:"כל האצווה — 40 יח'", recall:"כן", rootCause:"שימוש במשטח עבודה משותף",
+     riskSurvey:"כן", dueDate:d(28), caStatus:"הושלמה",
+     effectiveness:"בתהליך", effResult:"מעקב חודשי — בדיקה הבאה בעוד שבועיים.", questions:[]}
+  ];
+  samples.forEach((s,i)=>{
+    reports.push(Object.assign({id:"s"+now+"_"+i, createdAt: now-i, closedAt: s.closedAt||null, questions: s.questions||[]}, s, {closedAt: s.closedAt||null}));
+  });
+  save(); renderCards(); renderReports();
+  toast("📦 נטענו " + samples.length + " דיווחי דוגמה");
+}
+
+/* ---------- init ---------- */
+function init(){
+  load();
+  fillSelect($("f_department"), DEPARTMENTS, true);
+  fillSelect($("f_topic"), TOPICS, true);
+  fillSelect($("f_hazard"), HAZARDS, true);
+  fillSelect($("f_severity"), SEVERITIES, false);
+  $("f_productDecision").innerHTML = DECISIONS.map(d=>`<option>${esc(d)}</option>`).join("");
+  personSelect($("f_reporter"));
+  personSelect($("f_assignee"));
+  personSelect($("f_qTo"));
+  [["f_reporter","f_reporterOther"],["f_assignee","f_assigneeOther"],["f_qTo","f_qToOther"]].forEach(([sel,other])=>{
+    $(sel).addEventListener("change", ()=>{ $(other).style.display = $(sel).value==="__other" ? "block":"none"; });
+  });
+  $("f_product").addEventListener("input", renderRecurWarn);
+  $("f_topic").addEventListener("change", renderRecurWarn);
+  $("roleSelect").value = role;
+  renderCards();
+  // סגירת מודאלים בלחיצה על הרקע
+  ["formOverlay","detailOverlay"].forEach(id=>{
+    $(id).addEventListener("click", e=>{ if(e.target===$(id)){ id==="formOverlay"?closeForm():closeDetail(); } });
+  });
+}
+init();
+</script>
+</body>
+</html>
