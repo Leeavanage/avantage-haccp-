@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>תלונות ותקלות · אוונטאז' פטיסרי</title>
+<link rel="icon" href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><circle cx="32" cy="32" r="32" fill="%23fde7f1"/><path d="M32 52 C18 42 12 34 12 26 a10 10 0 0 1 20-2 a10 10 0 0 1 20 2 c0 8-6 16-20 26 z" fill="%23f06daf"/><path d="M32 52 C18 42 12 34 12 26 a10 10 0 0 1 10-10 c-2 10 4 22 14 32 z" fill="%23d6559c"/><circle cx="39" cy="26" r="5" fill="%23fff1f7"/></svg>'>
 <style>
 :root{
   --blue:#1f66d0; --teal:#0e9aa7;
@@ -38,6 +39,8 @@ header.app{
 }
 .app-inner{max-width:1100px; margin:0 auto;}
 .app-title-row{display:flex; align-items:center; justify-content:space-between; gap:.6rem; flex-wrap:wrap;}
+.brand{display:flex; align-items:center; gap:.65rem;}
+.brand .logo{width:44px; height:44px; flex:0 0 auto; filter:drop-shadow(0 2px 4px rgba(0,0,0,.18));}
 .app h1{margin:0; font-size:1.15rem; font-weight:800; letter-spacing:.2px;}
 .app .sub{font-size:.72rem; opacity:.85;}
 .role-wrap{display:flex; align-items:center; gap:.35rem; font-size:.8rem;}
@@ -254,9 +257,12 @@ main{max-width:1100px; margin:0 auto; padding:1rem 1rem 6.5rem;}
 <header class="app">
   <div class="app-inner">
     <div class="app-title-row">
-      <div>
-        <h1>תלונות ותקלות · אוונטאז' פטיסרי</h1>
-        <div class="sub">מערכת HACCP · טופס ט.נ 0201 · פעולות מתקנות</div>
+      <div class="brand">
+        <svg class="logo" viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="32" r="32" fill="#fde7f1"/><path d="M32 52 C18 42 12 34 12 26 a10 10 0 0 1 20-2 a10 10 0 0 1 20 2 c0 8-6 16-20 26 z" fill="#f06daf"/><path d="M32 52 C18 42 12 34 12 26 a10 10 0 0 1 10-10 c-2 10 4 22 14 32 z" fill="#d6559c"/><circle cx="39" cy="26" r="5" fill="#fff1f7"/></svg>
+        <div>
+          <h1>תלונות ותקלות · אוונטאז' פטיסרי</h1>
+          <div class="sub">מערכת HACCP · טופס ט.נ 0201 · <span id="syncStatus">⚪ מקומי</span></div>
+        </div>
       </div>
       <div class="role-wrap">
         <span>תפקיד:</span>
@@ -312,6 +318,14 @@ main{max-width:1100px; margin:0 auto; padding:1rem 1rem 6.5rem;}
     <div class="chart-card"><h4>לפי חומרה</h4><div id="chartSev"></div></div>
     <div class="chart-card"><h4>לפי חודש</h4><div id="chartMonth"></div></div>
     <div class="chart-card"><h4>⚠️ מוצרים חוזרים (2 תלונות ומעלה)</h4><div id="repeatProducts"></div></div>
+    <div class="chart-card"><h4>☁️ סנכרון ענן (Supabase)</h4>
+      <label>כתובת הפרויקט (Project URL)</label>
+      <input type="url" id="sbUrl" dir="ltr" placeholder="https://xxxx.supabase.co">
+      <label>מפתח anon public</label>
+      <input type="text" id="sbKey" dir="ltr" placeholder="eyJhbGciOi…">
+      <button class="btn primary" style="margin-top:.6rem" onclick="sbSaveSettings()">☁️ שמירה והתחברות</button>
+      <div class="hint">כשהסנכרון פעיל, כל הדיווחים נשמרים בבסיס נתונים משותף — וכל הצוות רואה אותם מכל מכשיר. בלי הגדרה, הנתונים נשמרים במכשיר זה בלבד.</div>
+    </div>
     <div class="data-actions">
       <button class="btn ghost" onclick="exportCSV()">📄 ייצוא לאקסל (CSV)</button>
       <button class="btn ghost" onclick="exportJSON()">💾 גיבוי JSON</button>
@@ -521,6 +535,97 @@ function setPersonValue(selId, otherId, val){
   else { $(selId).value="__other"; $(otherId).style.display="block"; $(otherId).value=val; }
 }
 
+/* ---------- Supabase cloud sync ---------- */
+const SB_URL_DEFAULT = "https://rxwysvbdmozkwfhhbsuq.supabase.co";
+const SB_KEY_DEFAULT = "sb_publishable_wbO8HOcCYQSwdWfN1T76FQ_51_zN7k7";
+function sbConfig(){
+  return {
+    url: (localStorage.getItem("sb_url") ?? SB_URL_DEFAULT).replace(/\/+$/,""),
+    key: localStorage.getItem("sb_key") ?? SB_KEY_DEFAULT
+  };
+}
+function sbEnabled(){ const c = sbConfig(); return !!(c.url && c.key); }
+function sbHeaders(){
+  const c = sbConfig();
+  const h = {"apikey": c.key, "Content-Type": "application/json"};
+  if(c.key.startsWith("eyJ")) h["Authorization"] = "Bearer " + c.key;
+  return h;
+}
+let sbPending = new Set(JSON.parse(localStorage.getItem("sb_pending") || "[]"));
+function savePending(){ localStorage.setItem("sb_pending", JSON.stringify([...sbPending])); }
+function setSyncStatus(txt, title){
+  const el = $("syncStatus");
+  if(el){ el.textContent = txt; el.title = title || ""; }
+}
+async function sbUpsert(r){
+  if(!sbEnabled()) return;
+  sbPending.add(r.id); savePending();
+  try{
+    const res = await fetch(sbConfig().url + "/rest/v1/complaints?on_conflict=id", {
+      method: "POST",
+      headers: Object.assign(sbHeaders(), {"Prefer": "resolution=merge-duplicates"}),
+      body: JSON.stringify([{id: r.id, data: r, updated_at: new Date().toISOString()}])
+    });
+    if(!res.ok) throw new Error("HTTP " + res.status);
+    sbPending.delete(r.id); savePending();
+    setSyncStatus("🟢 מסונכרן");
+  }catch(e){
+    setSyncStatus("🔴 ממתין לסנכרון", "אין חיבור — הרשומה תסונכרן אוטומטית כשהחיבור יחזור");
+  }
+}
+async function sbDeleteRow(id){
+  if(!sbEnabled()) return;
+  sbPending.delete(id); savePending();
+  try{ await fetch(sbConfig().url + "/rest/v1/complaints?id=eq." + encodeURIComponent(id), {method:"DELETE", headers: sbHeaders()}); }catch(e){}
+}
+async function sbDeleteAll(){
+  if(!sbEnabled()) return;
+  sbPending.clear(); savePending();
+  try{ await fetch(sbConfig().url + "/rest/v1/complaints?id=not.is.null", {method:"DELETE", headers: sbHeaders()}); }catch(e){}
+}
+async function sbPushPending(){
+  if(!sbEnabled()) return;
+  for(const id of [...sbPending]){
+    const r = reports.find(x=>x.id===id);
+    if(!r){ sbPending.delete(id); continue; }
+    await sbUpsert(r);
+  }
+  savePending();
+}
+async function sbPull(){
+  if(!sbEnabled()) return;
+  try{
+    await sbPushPending();
+    const res = await fetch(sbConfig().url + "/rest/v1/complaints?select=data&order=updated_at.asc", {headers: sbHeaders()});
+    if(!res.ok) throw new Error("HTTP " + res.status);
+    const rows = await res.json();
+    const server = rows.map(x=>x.data).filter(Boolean);
+    // רשומות מקומיות שעדיין לא הספיקו להסתנכרן — לא מאבדים אותן
+    const localOnly = reports.filter(r => sbPending.has(r.id) && !server.some(s=>s.id===r.id));
+    reports = server.concat(localOnly);
+    save();
+    renderCards();
+    if($("view-reports").classList.contains("active")) renderReports();
+    setSyncStatus("🟢 מסונכרן", "עדכון אחרון: " + new Date().toLocaleTimeString("he-IL"));
+  }catch(e){
+    setSyncStatus("🔴 אין חיבור לענן", "בדקו את כתובת הפרויקט והמפתח בהגדרות הענן שבמסך הדוחות");
+  }
+}
+function sbSaveSettings(){
+  const url = $("sbUrl").value.trim(), key = $("sbKey").value.trim();
+  localStorage.setItem("sb_url", url);
+  localStorage.setItem("sb_key", key);
+  if(url && key){
+    toast("☁️ מתחבר לענן ומסנכרן…");
+    reports.forEach(r => sbPending.add(r.id));
+    savePending();
+    sbPull();
+  } else {
+    setSyncStatus("⚪ מקומי", "הנתונים נשמרים במכשיר זה בלבד");
+    toast("☁️ הסנכרון כובה — עבודה מקומית בלבד");
+  }
+}
+
 /* ---------- role ---------- */
 function setRole(r){
   role = r; localStorage.setItem(LS_ROLE, r);
@@ -723,6 +828,10 @@ function saveReport(closeIt){
   let r;
   if(editingId){
     r = reports.find(x=>x.id===editingId);
+    if(!r){
+      r = {id: editingId, createdAt: Date.now(), questions: [], closedAt: null};
+      reports.push(r);
+    }
     Object.assign(r, data);
   } else {
     r = Object.assign({
@@ -742,6 +851,7 @@ function saveReport(closeIt){
   if(closeIt){ r.closedAt = Date.now(); }
   r.status = statusOf(r);
   save();
+  sbUpsert(r);
   closeForm();
   renderCards();
   toast(closeIt ? "✅ הדיווח נסגר ואושר סופית" : "💾 הדיווח נשמר");
@@ -923,7 +1033,7 @@ function addQuestion(id){
   if(!text){ toast("נא להקליד שאלה"); return; }
   r.questions = r.questions || [];
   r.questions.push({to: to||"—", text, askedAt: Date.now(), answer:null, answeredAt:null});
-  save(); openDetail(id); renderCards();
+  save(); sbUpsert(r); openDetail(id); renderCards();
   toast("❓ השאלה נרשמה");
 }
 function answerQuestion(id, idx){
@@ -932,13 +1042,13 @@ function answerQuestion(id, idx){
   if(!val){ toast("נא להקליד תשובה"); return; }
   r.questions[idx].answer = val;
   r.questions[idx].answeredAt = Date.now();
-  save(); openDetail(id); renderCards();
+  save(); sbUpsert(r); openDetail(id); renderCards();
   toast("💬 התשובה נשמרה");
 }
 function deleteReport(id){
   if(!confirm("למחוק את הדיווח לצמיתות?")) return;
   reports = reports.filter(x=>x.id!==id);
-  save(); closeDetail(); renderCards();
+  save(); sbDeleteRow(id); closeDetail(); renderCards();
   toast("🗑️ הדיווח נמחק");
 }
 
@@ -1060,6 +1170,7 @@ function importJSON(input){
       if(!Array.isArray(data)) throw new Error();
       if(!confirm(`לטעון ${data.length} דיווחים מהגיבוי? (יחליף את הנתונים הנוכחיים)`)) return;
       reports = data; save(); renderCards(); renderReports();
+      if(sbEnabled()){ reports.forEach(r=>sbPending.add(r.id)); savePending(); sbPushPending(); }
       toast("📂 הגיבוי נטען בהצלחה");
     }catch(err){ toast("⚠️ קובץ לא תקין"); }
   };
@@ -1077,7 +1188,7 @@ function downloadFile(content, mime, name){
 function clearAll(){
   if(!confirm("למחוק את כל הדיווחים לצמיתות? מומלץ לבצע גיבוי JSON קודם.")) return;
   if(!confirm("בטוחים? פעולה זו אינה הפיכה.")) return;
-  reports = []; save(); renderCards(); renderReports();
+  reports = []; save(); sbDeleteAll(); renderCards(); renderReports();
   toast("🗑️ כל הנתונים נמחקו");
 }
 
@@ -1198,7 +1309,25 @@ function loadSampleData(){
     reports.push(Object.assign({id:"s"+now+"_"+i, createdAt: now-i, closedAt: s.closedAt||null, questions: s.questions||[]}, s, {closedAt: s.closedAt||null}));
   });
   save(); renderCards(); renderReports();
+  if(sbEnabled()){ reports.slice(-samples.length).forEach(r=>sbUpsert(r)); }
   toast("📦 נטענו " + samples.length + " דיווחי דוגמה");
+}
+
+/* ---------- app icon for home screen ---------- */
+function makeTouchIcon(){
+  try{
+    const c = document.createElement("canvas");
+    c.width = c.height = 180;
+    const x = c.getContext("2d");
+    x.scale(180/64, 180/64);
+    x.fillStyle = "#fde7f1"; x.beginPath(); x.arc(32,32,32,0,7); x.fill();
+    x.fillStyle = "#f06daf"; x.fill(new Path2D("M32 52 C18 42 12 34 12 26 a10 10 0 0 1 20-2 a10 10 0 0 1 20 2 c0 8-6 16-20 26 z"));
+    x.fillStyle = "#d6559c"; x.fill(new Path2D("M32 52 C18 42 12 34 12 26 a10 10 0 0 1 10-10 c-2 10 4 22 14 32 z"));
+    x.fillStyle = "#fff1f7"; x.beginPath(); x.arc(39,26,5,0,7); x.fill();
+    const l = document.createElement("link");
+    l.rel = "apple-touch-icon"; l.sizes = "180x180"; l.href = c.toDataURL("image/png");
+    document.head.appendChild(l);
+  }catch(e){}
 }
 
 /* ---------- init ---------- */
@@ -1219,6 +1348,19 @@ function init(){
   $("f_topic").addEventListener("change", renderRecurWarn);
   $("roleSelect").value = role;
   renderCards();
+  makeTouchIcon();
+  // סנכרון ענן
+  $("sbUrl").value = sbConfig().url;
+  $("sbKey").value = sbConfig().key;
+  if(sbEnabled()){
+    setSyncStatus("⏳ מתחבר…");
+    sbPull();
+    setInterval(sbPull, 60000);
+    document.addEventListener("visibilitychange", ()=>{ if(!document.hidden) sbPull(); });
+    window.addEventListener("online", sbPull);
+  } else {
+    setSyncStatus("⚪ מקומי", "הנתונים נשמרים במכשיר זה בלבד — הגדרת ענן במסך הדוחות");
+  }
   // סגירת מודאלים בלחיצה על הרקע
   ["formOverlay","detailOverlay"].forEach(id=>{
     $(id).addEventListener("click", e=>{ if(e.target===$(id)){ id==="formOverlay"?closeForm():closeDetail(); } });
