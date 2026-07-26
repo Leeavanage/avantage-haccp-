@@ -677,7 +677,13 @@ function setRole(r){
     }
   }
   role = r; localStorage.setItem(LS_ROLE, r);
+  applyRoleUI();
   toast("תפקיד נוכחי: " + r);
+}
+function applyRoleUI(){
+  const isQA = role === QA_ROLE;
+  document.querySelector("nav.tabs").style.display = isQA ? "flex" : "none";
+  if(!isQA) showView("dashboard");
 }
 
 /* ---------- views ---------- */
@@ -1117,6 +1123,7 @@ function openDetail(id){
     <div class="detail-actions">
       <button class="btn primary" onclick="closeDetail(); openForm('${r.id}')">✏️ עריכה</button>
       <button class="btn ghost" onclick="printReport('${r.id}')">🖨️ ייצוא PDF</button>
+      <button class="btn ghost" style="background:#e5f6ee;color:#1d7a44" onclick="shareWhatsApp('${r.id}')">💬 שליחה בוואטסאפ</button>
       ${!r.closedAt && canClose ? `<button class="btn ghost" style="background:#e5f6ee;color:#1d7a44" onclick="closeDetail(); openForm('${r.id}'); showStep(4)">✅ סגירה ואישור</button>` : ""}
       ${!canClose && !r.closedAt ? `<span class="hint" style="align-self:center">🔒 סגירה סופית — לי חסון (ראש צוות HACCP) בלבד</span>`:""}
       <button class="btn danger" onclick="deleteReport('${r.id}')">🗑️ מחיקה</button>
@@ -1146,6 +1153,21 @@ function answerQuestion(id, idx){
   r.questions[idx].answeredAt = Date.now();
   save(); sbUpsert(r); openDetail(id); renderCards();
   toast("💬 התשובה נשמרה");
+}
+function shareWhatsApp(id){
+  const r = reports.find(x=>x.id===id);
+  if(!r) return;
+  const to = (r.taggedTo || r.assignee || "").split(" · ")[0];
+  const title = (r.quick && !r.product) ? r.details.slice(0,90) : (r.topic + (r.product ? " · " + r.product : ""));
+  const lines = [
+    "היי" + (to ? " " + to : "") + ",",
+    "נפתחה תקלה במערכת התלונות של אוונטאז' פטיסרי:",
+    "«" + title + "»",
+    (r.severity ? "חומרה: " + r.severity + " · " : "") + "סטטוס: " + r.status + (r.department ? " · מחלקה: " + r.department : ""),
+    "אנא צרו קשר עם לי חסון להמשך טיפול.",
+    location.href.split("?")[0].split("#")[0]
+  ];
+  window.open("https://wa.me/?text=" + encodeURIComponent(lines.join("\n")), "_blank");
 }
 function deleteReport(id){
   if(!confirm("למחוק את הדיווח לצמיתות?")) return;
@@ -1455,6 +1477,7 @@ function init(){
   $("f_topic").addEventListener("change", renderRecurWarn);
   if(role !== "צוות" && role !== QA_ROLE){ role = "צוות"; localStorage.setItem(LS_ROLE, role); }
   $("roleSelect").value = role;
+  applyRoleUI();
   renderCards();
   makeTouchIcon();
   // סנכרון ענן
